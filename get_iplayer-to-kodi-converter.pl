@@ -1025,7 +1025,7 @@ if(@ARGV) {
         
         ($mediaFileSourceVolume, $mediaFileSourceDirectory, $mediaFileSourceFilename) = File::Spec->splitpath("$mediaFile");
         my $mediaFileSourceFilenameNoExtension = $mediaFileSourceFilename;
-        $mediaFileSourceFilenameNoExtension =~ s/\..*\Z//;
+        $mediaFileSourceFilenameNoExtension =~ s/\.[a-zA-Z0-9]{3}\Z//;
         
         my $mediaFileDestinationVolume;     # Volume only. TODO: Not fully implemented yet (but Windows only)
         my $mediaFileDestinationDirectory;  # Full path
@@ -1113,15 +1113,11 @@ if(@ARGV) {
             # check for presence of newer XML tags, choosing here to check for two of the more useful newer tags 
             # <sesort>, <firstbcastyear> but throwing away the results as not necessarily needed yet.
             my $iplayerXmlNewerType = 0;
-            print("DEBUG: Calling getMetadata on <firstbcastyear>.\n");
             if(defined(getMetadata(\$iplayerXmlString, 'firstbcastyear')) || defined(getMetadata(\$iplayerXmlString, 'sesort'))) {
                 $iplayerXmlNewerType = 1;
-                print("DEBUG: getMetadata called on <firstbcastyear> and returned defined.\n");
             }
             else {
-                print("DEBUG: getMetadata called on <firstbcastyear> and returned undef.\n");
             }
-            print("DEBUG: Finished calling getMetadata on <firstbcastyear>.\n");
 
             $mediaFilePid = getMetadata(\$iplayerXmlString, 'pid');
             if(length($mediaFilePid) == 8) {
@@ -1423,13 +1419,13 @@ if(@ARGV) {
                         # This is totally fine.
                     }
                     else {
-                        # Deal with a specifically named season, it's *probably* fine but add season number as a prefix for directory sorting purposes
+                        # Deal with a specifically named season, it's *probably* fine but add Series NN as a prefix for directory sorting purposes
                         # TODO: Kodi: <namedseason number="1"> for TvShow nfo file
                         if(defined(my $seriesNumber = getMetadata(\$iplayerXmlString, 'seriesnum'))) {
                             if(length($seriesNumber) == 1) {
                                 $seriesNumber = '0' . $seriesNumber;
                             }
-                            $newNameSeriesName = $seriesNumber . '_' . $newNameSeriesName;
+                            $newNameSeriesName = 'Series ' . $seriesNumber . '_' . $newNameSeriesName;
                         }
                     }
                 }
@@ -1529,10 +1525,13 @@ if(@ARGV) {
 
             # Now should have all information necessary to create a new Kodi compatible filename
             # Occasionally a programme or episode name has been observed to contain one or more '/' characters. Most often because of a date in the programme name.
-            # Also replace whitespace in file and directory names with the chosen separator character
+            # Remove some forbidden characters from filename with no replacement (most are forbidden in Windows)
+            # Replace other forbidden characters from filename with a hyphen (most are forbidden in Windows)
+            # Replace whitespace in file and directory names with the chosen separator character
             foreach($newNameShowName, $newNameSeriesName, $newNameEpisodeName, $newNameSeriesNumber, $newNameSeriesEpisodeCode, $newNameYear) {
                 if(defined($_)) {
-                    $_ =~ s/\//-/g;
+                    $_ =~ s/[<>:|\/\\]/-/g;
+                    $_ =~ s/["'`?*]//g;
                     $_ =~ s/\s/$separator/g;
                 }
             }
@@ -1610,10 +1609,10 @@ if(@ARGV) {
             
             # MP4/M4A - COMMON TO ALL MEDIA
             # transfer the media file itself to the destination directory. No if -f check, existance already proven
-            if($mediaType =~ m/\AFILM\Z/ || m/\ATV\Z/) {
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
                 &$transfer($mediaFile, $mediaFileDestinationDirectory . $newFilenameComplete . '.mp4');
             }
-            elsif(m/\ARADIO\Z/) {
+            elsif($mediaType =~ m/\ARADIO\Z/) {
                 &$transfer($mediaFile, $mediaFileDestinationDirectory . $newFilenameComplete . '.m4a');
             }
              

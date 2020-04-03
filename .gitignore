@@ -33,3 +33,7 @@ inc/
 /MANIFEST.bak
 /pm_to_blib
 /*.zip
+
+# Non-essential project files
+categories/*.list
+output.txt
