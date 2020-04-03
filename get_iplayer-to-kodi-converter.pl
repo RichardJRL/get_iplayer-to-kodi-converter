@@ -625,16 +625,16 @@ sub downloadMetadataFile {
         }
         elsif($_ =~ m/\Aseries\.jpg\Z/) {
             # Special handling required to avoid overwriting other jpg files
-            my $jpgOptions = '--thumbnail-series --thumbnail-size=1920';
-            my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension.series\"";
+            my $jpgOptions = '--thumbnail-only --thumbnail-series --thumbnail-size=1920';
+            my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
             print("STATUS: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type series.jpg to $savePath\n");
             print("STATUS: Subroutine downloadMetadataFile: Running command: $command\n");
             `$command`;
         }
         elsif($_ =~ m/\Asquare\.jpg\Z/) {
             # Special handling required to avoid overwriting other jpg files
-            my $jpgOptions = '--thumbnail-square --thumbnail-size=1920';
-            my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension.square\"";
+            my $jpgOptions = '--thumbnail-only --thumbnail-square --thumbnail-size=1920';
+            my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
             print("STATUS: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type square.jpg to $savePath\n");
             print("STATUS: Subroutine downloadMetadataFile: Running command: $command\n");
             `$command`;
@@ -1009,8 +1009,6 @@ if(@ARGV) {
         print("$_");
     }
 
-
-
     # Process each media file found
     foreach my $mediaFile (@sourceMediaFiles) {
         # Full path with the media file extension removed for constructing expected metadata filenames later
@@ -1115,9 +1113,15 @@ if(@ARGV) {
             # check for presence of newer XML tags, choosing here to check for two of the more useful newer tags 
             # <sesort>, <firstbcastyear> but throwing away the results as not necessarily needed yet.
             my $iplayerXmlNewerType = 0;
-            if(defined(getMetadata(\$iplayerXmlString, 'firstbcastyear')) || defined(getMetadata($iplayerXmlString, 'sesort'))) {
+            print("DEBUG: Calling getMetadata on <firstbcastyear>.\n");
+            if(defined(getMetadata(\$iplayerXmlString, 'firstbcastyear')) || defined(getMetadata(\$iplayerXmlString, 'sesort'))) {
                 $iplayerXmlNewerType = 1;
+                print("DEBUG: getMetadata called on <firstbcastyear> and returned defined.\n");
             }
+            else {
+                print("DEBUG: getMetadata called on <firstbcastyear> and returned undef.\n");
+            }
+            print("DEBUG: Finished calling getMetadata on <firstbcastyear>.\n");
 
             $mediaFilePid = getMetadata(\$iplayerXmlString, 'pid');
             if(length($mediaFilePid) == 8) {
@@ -1188,6 +1192,7 @@ if(@ARGV) {
             elsif($mediaFileSourceFilename =~ m/\.mp4\Z/ && $iplayerTagCategories =~ m/[Ff]ilm/) {
                 $mediaType = 'FILM';
                 print("STATUS: Media file classified as: FILM.\n");
+                # open the <movie> nfo template
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateFilm.nfo");
                 print("STATUS: Using FILM type rules to process the media file $mediaFileSourceFilename\n");
                 print("STATUS: Creating <movie> type Kodi compatible nfo metadata file.\n");
@@ -1450,7 +1455,7 @@ if(@ARGV) {
                     if($newNameSeriesEpisodeCode =~ m/\As[0-9]{2}e[0-9]{2,3}[a-z]?\Z/) {
                         $newNameSeriesEpisodeCode = uc($newNameSeriesEpisodeCode);
                         $newNameSeriesNumber = $newNameSeriesEpisodeCode;
-                        $newNameSeriesNumber =~ s/\AS[0-9]{2}E(.*)\Z/$1/;
+                        $newNameSeriesNumber =~ s/\AS([0-9]{2})E.*\Z/$1/;
                     }
                 }
                 else {
@@ -1650,10 +1655,10 @@ if(@ARGV) {
             if(($mediaType =~ m /\ARADIO\Z/) || ($mediaType =~ m /\ATV\Z/)) {
                 if(defined($newNameSeriesNumber)) {
                     # To prevent it being downloaded for every episode processed in a series, check for its existance in the DESTINATION directory
-                    my $seriesArtworkFilename = 'Season' . $newNameSeriesNumber . '-fanart.jpg';
-                    my $seriesArtworkFullPath = $mediaFileSeriesAtworkDirectory . $seriesArtworkFilename;
+                    my $seriesArtworkFilename = 'season' . $newNameSeriesNumber . '-fanart';
+                    my $seriesArtworkFullPath = $mediaFileSeriesAtworkDirectory . $seriesArtworkFilename . '.jpg';
                     if(-f $seriesArtworkFullPath) {
-                        print("INFO: A programme series jpg image file $seriesArtworkFilename already exists in the destination directory.\n");
+                        print("INFO: A programme series jpg image file $seriesArtworkFilename.jpg already exists in the destination directory.\n");
                     }
                     else {
                         my ($newSeriesJpg) = downloadMetadataFile($mediaFileSeriesAtworkDirectory, $seriesArtworkFilename, $mediaFilePid, $mediaFileVersion, 'series.jpg');
@@ -1670,12 +1675,13 @@ if(@ARGV) {
             # SQUARE.JPG -EXCLUSIVE TO RADIO
             # Transfer *square* metadata jpg thumbnail image to the destination directory as 'thumb' image type
             # None have been downloaded before...
+            # TODO: Untested
             if($mediaType =~ m /\ARADIO\Z/) {
-                if(-f $mediaFileFullPathNoExtension . '-square.jpg') {
-                    &$transfer($mediaFileFullPathNoExtension . '-square.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-thumb.jpg');
+                if(-f $mediaFileFullPathNoExtension . '-thumb.jpg') {
+                    &$transfer($mediaFileFullPathNoExtension . '-thumb.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-thumb.jpg');
                 }
                 else {
-                    my ($newSquareJpg) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, '-thumb.jpg');
+                    my ($newSquareJpg) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete . '-thumb', $mediaFilePid, $mediaFileVersion, 'square.jpg');
                     if(-f $newSquareJpg) {
                         print("Success: Downloaded a new programme square jpg file to the destination directory.\n");
                     }
@@ -1688,16 +1694,18 @@ if(@ARGV) {
             # SRT - COMMON TO ALL MEDIA EXCEPT RADIO
             # Transfer subtitles file to the destination directory
             # NB: Not using the dotted, first-letter-capitalised language pre-suffix e.g. foo_S01E01.English.srt, foo_S01E01.French.srt
-            if(-f $mediaFileFullPathNoExtension . '.srt') {
-                &$transfer($mediaFileFullPathNoExtension . '.srt', $mediaFileDestinationDirectory . $newFilenameComplete . '.srt');
-            }
-            else {
-                my ($newSrt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'srt');
-                if(-f $newSrt) {
-                    print("SUCCESS: Downloaded a new subtitles file to the destination directory.\n");
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+                if(-f $mediaFileFullPathNoExtension . '.srt') {
+                    &$transfer($mediaFileFullPathNoExtension . '.srt', $mediaFileDestinationDirectory . $newFilenameComplete . '.srt');
                 }
                 else {
-                    print("WARNING: Unable to download a new subtitles file to the destination directory.\n");
+                    my ($newSrt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'srt');
+                    if(-f $newSrt) {
+                        print("SUCCESS: Downloaded a new subtitles file to the destination directory.\n");
+                    }
+                    else {
+                        print("WARNING: Unable to download a new subtitles file to the destination directory.\n");
+                    }
                 }
             }
 
@@ -1707,7 +1715,8 @@ if(@ARGV) {
                 &$transfer($mediaFileFullPathNoExtension . '.credits.txt', $mediaFileDestinationDirectory . $newFilenameComplete . '.credits.txt');
             }
             else {
-                my ($newCreditsTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'credits.txt');
+                my $newCreditsTxt = undef;
+                ($newCreditsTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'credits.txt');
                 if(-f $newCreditsTxt) {
                     print("SUCCESS: Downloaded a new programme credits text file to the destination directory.\n");
                 }
