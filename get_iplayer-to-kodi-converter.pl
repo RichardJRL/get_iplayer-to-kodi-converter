@@ -165,9 +165,9 @@ sub getMetadata {
         }
         else {
             print("SUCCESS: Subroutine getMetadata: Found " . @xmlTextNodeSearchResultsArray . " XML tags <$tag> containing text.\n");
-            foreach my $textNode (@xmlTextNodeSearchResultsArray) {
-                print("SUCCESS: Subroutine getMetadata: Text contents of the XML tag <$tag> are: $textNode\n");
-            }
+            # foreach my $textNode (@xmlTextNodeSearchResultsArray) {
+            #     print("SUCCESS: Subroutine getMetadata: Text contents of the XML tag <$tag> are: $textNode\n");
+            # }
             # Use to_literal() if '&' instead of '&amp;' needed in the output
             print("SUCCESS: Subroutine getMetadata: Returning the text contents of the *first* XML <$tag> tag found: " . $xmlTextNodeSearchResultsArray[0]->toString() . "\n");
             return $xmlTextNodeSearchResultsArray[0]->toString();
@@ -479,7 +479,7 @@ sub transferMetadata {
         return undef;
     }
 
-    print("INFO: Subroutine transferMetadata: Calling subroutine getMetadata...\n");
+    print("INFO: Subroutine transferMetadata: Calling subroutine setMetadata...\n");
     if(setMetadataSingle($kodiNfoStringReference, $kodiTag, $text)) {
         print("SUCCESS: Subroutine transferMetadata: Successfully transferred the text \'$text\' from the input XML document to the <$kodiTag> XML tag in the output XML document.\n");
         return $text;
@@ -588,7 +588,7 @@ sub downloadMetadataFile {
 
     my $prettyMetadataFilesList = join(',', @fileExtensions);
 
-    print("STATUS: Subroutine downloadMetadataFile: Attempting to download missing $prettyMetadataFilesList metadata files using get_iplayer.\n");
+    print("INFO: Subroutine downloadMetadataFile: Attempting to download missing $prettyMetadataFilesList metadata files using get_iplayer.\n");
 
     if(!defined($savePath) || !defined($filenameNoPathNoExtension) || !defined($pid) || !defined($version)) {
         print("ERROR: One or more essential arguments to the subroutine donwloadMetadataFile are undefined\n");
@@ -627,16 +627,16 @@ sub downloadMetadataFile {
             # Special handling required to avoid overwriting other jpg files
             my $jpgOptions = '--thumbnail-only --thumbnail-series --thumbnail-size=1920';
             my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
-            print("STATUS: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type series.jpg to $savePath\n");
-            print("STATUS: Subroutine downloadMetadataFile: Running command: $command\n");
+            print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type series.jpg to $savePath\n");
+            print("INFO: Subroutine downloadMetadataFile: Running command: $command\n");
             `$command`;
         }
         elsif($_ =~ m/\Asquare\.jpg\Z/) {
             # Special handling required to avoid overwriting other jpg files
             my $jpgOptions = '--thumbnail-only --thumbnail-square --thumbnail-size=1920';
             my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
-            print("STATUS: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type square.jpg to $savePath\n");
-            print("STATUS: Subroutine downloadMetadataFile: Running command: $command\n");
+            print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type square.jpg to $savePath\n");
+            print("INFO: Subroutine downloadMetadataFile: Running command: $command\n");
             `$command`;
         }
         elsif($_ =~ m/\Atracks.txt\Z/) {
@@ -660,8 +660,8 @@ sub downloadMetadataFile {
     if($filesToDownload != 0) {
         my $prettyStringOfMetadataFiles = join(', ', @fileExtensions);
         my $command = "$get_iplayer --get $get_iplayerMetadataOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
-        print("STATUS: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type $prettyStringOfMetadataFiles to $savePath\n");
-        print("STATUS: Subroutine downloadMetadataFile: Running command: $command\n");
+        print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type $prettyStringOfMetadataFiles to $savePath\n");
+        print("INFO: Subroutine downloadMetadataFile: Running command: $command\n");
         `$command`;
     }
 
@@ -669,7 +669,7 @@ sub downloadMetadataFile {
         my $fileExpectedLocation = $savePath . '/' . $filenameNoPathNoExtension . '.' . $_;
         if(-f $fileExpectedLocation) {
             push(@filesDownloaded, $fileExpectedLocation);
-            print("STATUS: Subroutine downloadMetadataFile: Downloaded metadata file " . $filenameNoPathNoExtension . '.' . $_ . "\n");
+            print("INFO: Subroutine downloadMetadataFile: Downloaded metadata file " . $filenameNoPathNoExtension . '.' . $_ . "\n");
         }
         else {
             print("WARNING: Subroutine downloadMetadataFile: Unable to download metadata file " . $filenameNoPathNoExtension . '.' . $_ . "\n");
@@ -765,23 +765,21 @@ if(@ARGV) {
         #     }  
         # }
         elsif($currentArg =~ m/\A--source/) {
-            $currentArg = shift(@ARGV);
-            if(defined($currentArg)) {
-                if(-e $currentArg) {
-                    push(@claSource, File::Spec->rel2abs($currentArg));
-                }
-                else {
-                    print("ERROR: --source command line argument requires a valid path to be specified. \'$currentArg\' is not a valid path.\n");
-                    $claInvalid++;
-                    if(defined($currentArg)) {
-                        redo;
+            while($currentArg = shift(@ARGV)) {
+                if($currentArg !~ m/\A--/) {
+                    if(-e $currentArg) {
+                        push(@claSource, File::Spec->rel2abs($currentArg));
+                    }
+                    else {
+                        print("ERROR: --source command line argument requires a valid path to be specified.\n");
+                        $claInvalid++;
                     }
                 }
+                else {
+                    last;
+                }
             }
-            else {
-                print("ERROR: --source command line argument requires a valid path to be specified.\n");
-                $claInvalid++;
-            }
+            redo;
         }
         elsif($currentArg =~ m/\A--destination/) {
             $currentArg = shift(@ARGV);
@@ -886,8 +884,8 @@ if(@ARGV) {
                     push(@sourceMediaFiles, $path);
                 }
                 else {
-                    print("ERROR: File specified with --source command line argument is not an mp4 video file nor an m4a audio file: $path\n");
-                    $claErrors++;
+                    print("WARNING: File specified with --source command line argument is not an mp4 video file nor an m4a audio file: $path\n");
+                    # $claErrors++;
                 }
             }
             elsif(-d $path) {
@@ -963,9 +961,9 @@ if(@ARGV) {
             getMediaFiles($_);
         }
     }
-    # print("STATUS: The following source files have been extracted from command line arguments:\n");
+    # print("INFO: The following source files have been extracted from command line arguments:\n");
     # print(Dumper(@sourceMediaFiles));
-    # print("STATUS: The following source directories have been extracted from command line arguments:\n");
+    # print("INFO: The following source directories have been extracted from command line arguments:\n");
     # print(Dumper(@sourceDirs));
 
     # One final sanity check before starting the conversion process.
@@ -1053,7 +1051,7 @@ if(@ARGV) {
         # $destinationDirTv = $destinationDir . $destinationDirTv;
         # $destinationDirMusic = $destinationDir . $destinationDirMusic;
 
-        print("STATUS: Processing media file: $mediaFileSourceFilename\n");
+        print("INFO: Processing media file: $mediaFileSourceFilename\n");
 
         # One of three values to identify which media subdirectory the media is moved to.
         # Determines filename construction pattern, which variant of Kodi .nfo file is constructed for the file etc.
@@ -1072,24 +1070,23 @@ if(@ARGV) {
         # Download of missing XML metadata file will be done ONLY IF the programme PID can be extracted from the filename...
         my $justDownloadedFreshXmlMetadata = 0;
         if(!-f $metadataFileXml) {
-            print("WARNING: No associated XML metadata file found.\n");
+            print("WARNING: No associated XML metadata file found for $mediaFileSourceFilename\n");
             # Attempt to extract programme PID and version from the filename
             $mediaFilePid = $mediaFileSourceFilename;
             $mediaFileVersion = $mediaFileSourceFilename;
             $mediaFilePid =~ s/.+[_ ]{1}([a-zA-Z0-9]{8})[_ ]{1}[a-zA-Z0-9]+\.m[a-zA-A1-9]{2}\Z/$1/;
             $mediaFileVersion =~ s/.+[_ ]{1}[a-zA-Z0-9]{8}[_ ]{1}([a-zA-Z0-9]+)\.m[a-zA-A1-9]{2}\Z/$1/;
 
-            # check mediaFilePid is a an 8 character PID and that it has not been mistaken for the most common 8 character long programme version 'original'
+            # check mediaFilePid is an 8 character PID and that it has not been mistaken for the most common 8 character long programme version 'original'
             if(length($mediaFilePid) == 8 && $mediaFilePid !~ m/\Aoriginal\Z/) {
-                print("STATUS: Extracted possible PID from filename: $mediaFilePid\n");              
-                print("STATUS: Attempting to download of missing XML metadata file.\n");
+                print("INFO: Extracted possible PID from filename: $mediaFilePid\n");              
+                print("INFO: Attempting to download of missing XML metadata file.\n");
                 my ($candidateXmlFile) = downloadMetadataFile($mediaFileSourceDirectory, $mediaFileSourceFilenameNoExtension, $mediaFilePid, $mediaFileVersion, 'xml');
-
                 # Check if the XML metadata file was downloaded by get_iplayer
-                if(-f $candidateXmlFile) {
+                if(defined($candidateXmlFile) && -f $candidateXmlFile) {
                     $justDownloadedFreshXmlMetadata = 1;
                     $metadataFileXml = $candidateXmlFile;
-                    print("STATUS: Confirmed download of missing XML metadata file.\n");
+                    print("INFO: Confirmed download of missing XML metadata file.\n");
                 }
                 else {
                     print("WARNING: Unable to download missing XML metadata file.\n");
@@ -1104,7 +1101,7 @@ if(@ARGV) {
 
         # Load .xml metadata file if it exists, later attempt reconstruction if it does not.
         if(-f $metadataFileXml) {
-            print("STATUS: Starting advanced parsing of programme information using associated XML metadata file...\n");
+            print("INFO: Starting advanced parsing of programme information using associated XML metadata file...\n");
             if(!defined($iplayerXmlString = openMetadataFile($metadataFileXml))) {
                 print("ERROR: Unable to open get_iplayer XML metadata file $metadataFileXml\n");
                 #TODO: Decide what action to take upon this error
@@ -1121,7 +1118,7 @@ if(@ARGV) {
 
             $mediaFilePid = getMetadata(\$iplayerXmlString, 'pid');
             if(length($mediaFilePid) == 8) {
-                print("STATUS: Extracted programme PID from XML metadata file: $mediaFilePid\n");
+                print("INFO: Extracted programme PID from XML metadata file: $mediaFilePid\n");
             }
             else {
                 print("ERROR: Unable to extract programme PID from XML metadata file: $mediaFilePid\n");
@@ -1129,7 +1126,7 @@ if(@ARGV) {
 
             $mediaFileVersion = getMetadata(\$iplayerXmlString, 'version');
             if(defined($mediaFileVersion)) {
-                print("STATUS: Extracted programme version from XML metadata file: $mediaFileVersion\n");
+                print("INFO: Extracted programme version from XML metadata file: $mediaFileVersion\n");
             }
             else {
                 print("ERROR: Unable to extract programme version from XML metadata file: $mediaFileVersion\n");
@@ -1139,7 +1136,7 @@ if(@ARGV) {
 
             $mediaFileThumbnail = getMetadata(\$iplayerXmlString, 'thumbnail');
             if(defined($mediaFileThumbnail)) {
-                print("STATUS: Extracted programme thumbnail URL from XML metadata file: $mediaFileThumbnail\n");
+                print("INFO: Extracted programme thumbnail URL from XML metadata file: $mediaFileThumbnail\n");
             }
             else {
                 print("ERROR: Unable to extract programme thumbnail URL from XML metadata file: $mediaFileThumbnail\n");
@@ -1155,11 +1152,11 @@ if(@ARGV) {
                     if(defined($iplayerXmlString = openMetadataFile($metadataFileXml))) {
                         print("SUCCESS: Successfully downloaded a newer version of the get_iplayer XML metadata file.\n");
                         print("INFO: Checking the newer version of the get_iplayer XML metadata file for the latest XML tags.\n");
-                        if(defined(getMetadata(\$iplayerXmlString, 'firstbcastyear')) || defined(getMetadata($iplayerXmlString, 'sesort'))) {
+                        if(defined(getMetadata(\$iplayerXmlString, 'firstbcastyear')) || defined(getMetadata(\$iplayerXmlString, 'sesort'))) {
                             $iplayerXmlNewerType = 1;
                         }
                         if($iplayerXmlNewerType == 1) {
-                            print("STATUS: Successfully the newer version of the XML metadata file contains the latest XML tags.\n");
+                            print("INFO: Successfully the newer version of the XML metadata file contains the latest XML tags.\n");
                         }
                         else {
                             print("WARNING: Downloaded a newer version of the XML metadata file but it does not appear to contain newer tags\n");
@@ -1179,29 +1176,32 @@ if(@ARGV) {
             my $iplayerTagType = getMetadata(\$iplayerXmlString, 'type');
             my $iplayerTagCategories = getMetadata(\$iplayerXmlString, 'categories');
 
-            print("STATUS: Attempting to classify media file.\n");
+            print("INFO: Attempting to classify media file.\n");
             if($mediaFileSourceFilename =~ m/\.m4a\Z/ && $iplayerTagType =~ m/[Rr]adio/) {
                 $mediaType = 'RADIO';
-                print("STATUS: Media file classified as: RADIO.\n");
-                # TODO: Add opening of kodiNfoTemplateTvEpisode.nfo here, as per $mediaType TV. Because Radio has more in common with TV programmes than Music organisation
+                print("INFO: Media file classified as: RADIO.\n");
+                # NB: Opening of kodiNfoTemplateTvEpisode.nfo here, as per $mediaType TV because RADIO has more in common with TV programmes than Music organisation.
+                open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateTvEpisode.nfo");
+                # TODO: open additional filehandle for the <tvshow> nfo template
+                print("INFO: Using TV type rules to process the audio file $mediaFileSourceFilename (This is NOT a mistake)\n");
+                print("INFO: Creating <epidsodedetails> type Kodi compatible nfo metadata file.\n");
             }
             elsif($mediaFileSourceFilename =~ m/\.mp4\Z/ && $iplayerTagCategories =~ m/[Ff]ilm/) {
                 $mediaType = 'FILM';
-                print("STATUS: Media file classified as: FILM.\n");
+                print("INFO: Media file classified as: FILM.\n");
                 # open the <movie> nfo template
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateFilm.nfo");
-                print("STATUS: Using FILM type rules to process the media file $mediaFileSourceFilename\n");
-                print("STATUS: Creating <movie> type Kodi compatible nfo metadata file.\n");
+                print("INFO: Using FILM type rules to process the video file $mediaFileSourceFilename\n");
+                print("INFO: Creating <movie> type Kodi compatible nfo metadata file.\n");
             }
             elsif($mediaFileSourceFilename =~ m/\.mp4\Z/) {
                 $mediaType = 'TV';
-                print("STATUS: Media file classified as: TV.\n");
+                print("INFO: Media file classified as: TV.\n");
                 # open the <episodedetails> nfo template
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateTvEpisode.nfo");
-                # open the <tvshow> nfo template
-                # TODO: open additional filehandle for the Kodi nfo file for a <tvshow>
-                print("STATUS: Using TV type rules to process the media file $mediaFileSourceFilename\n");
-                print("STATUS: Creating <epidsodedetails> type Kodi compatible nfo metadata file.\n");
+                # TODO: open additional filehandle for the <tvshow> nfo template
+                print("INFO: Using TV type rules to process the video file $mediaFileSourceFilename\n");
+                print("INFO: Creating <epidsodedetails> type Kodi compatible nfo metadata file.\n");
             }
             else {
                 $mediaType = 'UNKNOWN';
@@ -1220,7 +1220,8 @@ if(@ARGV) {
             # but sometimes, additional processing or logic is required before the transfer is completed.
             
             # Kodi: <title>, Organisation: Filename component
-            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                print("INFO: Attempting to find content for the Kodi <title> XML tag.\n");
                 # Map get_iplayer <title>, <brand>, <name>, <longname>, <nameshort> to Kodi <title> for FILM and to $newNameShowName
                 # Map get_iplayer <title>, <nameshort>, <name>, <longname> or <brand> to Kodi <title> for TV and to $newNameEpisodeName
                 my @iplayerTitleTagCandidates;
@@ -1234,7 +1235,7 @@ if(@ARGV) {
                     }
                     print("INFO: New filename is $newNameShowName\n");
                 }
-                elsif($mediaType =~ m/\ATV\Z/) {
+                elsif($mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
                     if(defined($newNameEpisodeName = getMetadata(\$iplayerXmlString, 'episodeshort'))) {
                         setMetadataSingle(\$kodiNfoString, 'title', $newNameEpisodeName);
                         print("INFO: New TV programme episode name is $newNameEpisodeName\n");
@@ -1263,7 +1264,8 @@ if(@ARGV) {
             }
 
             # Kodi: <showtitle> (the name of the whole show)
-            if($mediaType =~ m/\ATV\Z/){
+            if($mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/){
+                print("INFO: Attempting to find content for the Kodi <showtitle> XML tag.\n");
                 # Map get_iplayer <brand>, <nameshort>, first part of <name>, first part of <longname>, first part of <title> to Kodi <showtitle>
                 if(!defined($newNameShowName = getMetadata(\$iplayerXmlString, 'brand', 'nameshort'))) {
                     # splitting the getMetadata tag candidates as some (estimate 10%?) legitimate <brand> and <nameshort> tags contain ': ' as part of the show title.
@@ -1306,26 +1308,31 @@ if(@ARGV) {
 
             # Kodi: <outline>
             if($mediaType =~ m/\AFILM\Z/) {
+                print("INFO: Attempting to find content for the Kodi <outline> XML tag.\n");
                 # Map get_iplayer <descshort>, <desc> or <descmedium> to Kodi <outline>
                 my @iplayerShortDescriptionTagCandidates = ('descshort', 'desc', 'descmedium');
                 transferMetadata(\$iplayerXmlString, \@iplayerShortDescriptionTagCandidates, \$kodiNfoString, 'outline');
             }
 
             # Kodi: <plot>
-            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                print("INFO: Attempting to find content for the Kodi <plot> XML tag.\n");
                 # Map get_iplayer <desclong>, <descmedium>, <desc> or <descshort> to Kodi <plot>
                 my @iplayerLongDescriptionTagCandidates = ('desclong', 'descmedium', 'desc', 'descshort');
                 transferMetadata(\$iplayerXmlString, \@iplayerLongDescriptionTagCandidates, \$kodiNfoString, 'plot');
             }
 
             # Kodi: <runtime>
-            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                print("INFO: Attempting to find content for the Kodi <runtime> XML tag.\n");
                 # Map get_iplayer <duration>, <durations> to Kodi <runtime> indirectly because conversion from seconds to minutes required
                 # my @iplayerDurationTagCandidates = ('duration');
                 my $mediaFileDuration = getMetadata(\$iplayerXmlString, 'duration');
                 if(defined($mediaFileDuration)) {
-                    setMetadataSingle(\$kodiNfoString, 'runtime', int($mediaFileDuration/60));
+                    if($mediaFileDuration != 0) {
+                        setMetadataSingle(\$kodiNfoString, 'runtime', int($mediaFileDuration/60));
                     print("INFO: Media file runtime is " . $mediaFileDuration/60 . "minutes.\n");
+                    }   
                 }
                 else {
                     my $mediaFileRuntime = getMetadata(\$iplayerXmlString, 'runtime');
@@ -1340,7 +1347,8 @@ if(@ARGV) {
             }
 
             # Organisation: Filename component for FILM and TV 
-            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                print("INFO: Attempting to find a suitable year of first broadcast or premiere date for the programme.\n");
                 # The YEAR of get_iplayer <firstbcastyear> is almost always wrong for films for it choses the TV broadcast date rather than the cinema release date.
                 my @iplayerFirstBroadcastTagCandidates = ('firstbcastyear');
                 my $firstBroadcastYear = getMetadata(\$iplayerXmlString, @iplayerFirstBroadcastTagCandidates);
@@ -1350,12 +1358,14 @@ if(@ARGV) {
                 # OR attempt to download the iplayer programme webpage and extract the "firstBroadcast" information from there
                 # NB: firstBroadcastYear could still be undef after this - which is fine and is handled when building the newFilenameComplete later
                 if(!defined($firstBroadcastYear)) {
-                    print("No <firstbcastyear> tag found, searching for <firstbcast>, <firstbcastdate> tags instead");
+                    print("INFO: No <firstbcastyear> tag found, searching for <firstbcast>, <firstbcastdate> tags instead");
                     @iplayerFirstBroadcastTagCandidates = ('firstbcast', 'firstbcastdate');
                     $firstBroadcastYear = getMetadata(\$iplayerXmlString, @iplayerFirstBroadcastTagCandidates);
-                    $firstBroadcastYear =~ s/\A([12][0-9]{3})-/$1/;
-                    if(1900 < $firstBroadcastYear && $firstBroadcastYear < 2050) {
-                        $newNameYear = $firstBroadcastYear;
+                    if(defined($firstBroadcastYear)) {
+                        $firstBroadcastYear =~ s/\A([12][0-9]{3})-/$1/;
+                        if(1900 < $firstBroadcastYear && $firstBroadcastYear < 2050) {
+                            $newNameYear = $firstBroadcastYear;
+                        }
                     }
                 }
                 else {
@@ -1368,7 +1378,7 @@ if(@ARGV) {
                     $webifiedProgrammeName =~ s/\s/-/g;
                     # TODO: Check if $webifiedProgrammeName is needed on the end of the URL (whether LWP::Simple->get() can handle 301 redirection)
                     my $programmeUrl = "https://www.bbc.co.uk/iplayer/episode/$mediaFilePid";#/$webifiedProgrammeName";
-                    print("STATUS: Attempting to download programme's iplayer webpage $programmeUrl\n");
+                    print("INFO: Attempting to download programme's iplayer webpage $programmeUrl\n");
                     my $webpage = get($programmeUrl);
                     if(defined($webpage)) {
                         # TODO: Searching the whole file in a single string is probably quite inefficient
@@ -1378,7 +1388,7 @@ if(@ARGV) {
                             $downloadedBroadcastYear = $1;
                         }
                         else {
-                            print("STATUS: Could not find a more accurate year of first broadcast on the programme's iplayer webpage.\n");
+                            print("INFO: Could not find a more accurate year of first broadcast on the programme's iplayer webpage.\n");
                             $newNameYear = $firstBroadcastYear;
                         }
                         if(length($downloadedBroadcastYear) == 4) {
@@ -1400,12 +1410,13 @@ if(@ARGV) {
 
             # Organisation: Series directory name component for TV
             # Kodi ignores series directories, so their name does not matter except for human-readable reasons. 
-            if($mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                print("INFO: Attempting to find a suitable series directory name for the programme.\n");
                 if(defined($newNameSeriesName = getMetadata(\$iplayerXmlString, 'series'))) {
                     # Deal with series name being the same as the show name, set $newNameSeriesName to undef
                     if($newNameSeriesName =~ m/\A$newNameShowName\Z/) {
                         $newNameSeriesName = undef;
-                        print("INFO: Series name is the same as the Show name for this TV programme, omitting Series name and subdirectory.\n");
+                        print("INFO: Series Name is the same as the Show Name for this TV programme, therefore omitting the Series Name and subdirectory.\n");
                     }
                     # Deal with simple 'Series NN' series names, adding zero-padding to any series number under 10
                     elsif($newNameSeriesName =~ m/\ASeries [0-9]{1,}\Z/) {
@@ -1413,19 +1424,23 @@ if(@ARGV) {
                         if($newNameSeriesName =~ m/\ASeries [0-9]{1}\Z/) {
                             $newNameSeriesName =~ s/\A(Series) ([0-9]{1})\Z/$1 0$2/;
                         }
+                        print("INFO: Found a standard series name \'$newNameSeriesName\' for the programme.\n");
                     }
                     # Deal with year range series names e.g. 2019-2020
                     elsif($newNameSeriesName =~ m/\A[1-2]{1}[0-9]{3}-[1-2]{1}[0-9]{3}\Z/) {
+                        print("INFO: Found a standard date code (instead of a series name) \'$newNameSeriesName\' for the programme.\n");
                         # This is totally fine.
                     }
                     else {
                         # Deal with a specifically named season, it's *probably* fine but add Series NN as a prefix for directory sorting purposes
                         # TODO: Kodi: <namedseason number="1"> for TvShow nfo file
+                        print("INFO: Found a unique series name \'$newNameSeriesName\' for the programme.\n");
                         if(defined(my $seriesNumber = getMetadata(\$iplayerXmlString, 'seriesnum'))) {
                             if(length($seriesNumber) == 1) {
                                 $seriesNumber = '0' . $seriesNumber;
                             }
                             $newNameSeriesName = 'Series ' . $seriesNumber . '_' . $newNameSeriesName;
+                            print("INFO: Added a standard series name prefix to this uniquely nameds series \'$newNameSeriesName\'.\n");
                         }
                     }
                 }
@@ -1439,27 +1454,38 @@ if(@ARGV) {
             # This is the easiest option.
             # <sesort> and <senum>
             # or <seriesnum> and <episodenum> tags for pure numeric values
-            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                print("INFO: Attempting to find the series and episode code (SxxExx) for the programme.\n");
                 if(defined($newNameSeriesEpisodeCode = getMetadata(\$iplayerXmlString, 'sesort', 'senum'))) {
                     # Some continuously running programmes have a YYYYMMDDhhmm date code instead of a 's01e01' format identifier, reformat this for ease of reading
                     if($newNameSeriesEpisodeCode =~ m/\A[0-9]{12}\Z/) {
                         # $newNameSeriesEpisodeCode =~ s/\A([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})\Z/$1-$2-$3\_$4:$5/;
                         $newNameSeriesEpisodeCode =~ s/\A([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{4})\Z/$1-$2-$3/;
                         $newNameSeriesNumber = $newNameSeriesEpisodeCode; # TODO: Test if named series cause trouble with Series Artwork naming and detection by Kodi.
+                        print("INFO: Found a programme date code instead of a series and episode code (SxxExx) for the programme: $newNameSeriesEpisodeCode\n");
+                        print("INFO: Also setting the programme series number to the date code: $newNameSeriesNumber\n");
                     }
                     # Most are of the format s01e01, capitalise it. Very rarely, a suffixed letter will be added for a mulit-part episode.
                     if($newNameSeriesEpisodeCode =~ m/\As[0-9]{2}e[0-9]{2,3}[a-z]?\Z/) {
                         $newNameSeriesEpisodeCode = uc($newNameSeriesEpisodeCode);
                         $newNameSeriesNumber = $newNameSeriesEpisodeCode;
                         $newNameSeriesNumber =~ s/\AS([0-9]{2})E.*\Z/$1/;
+                        print("INFO: Found a standard series and episode code (SxxExx) for the programme: $newNameSeriesEpisodeCode\n");
+                        print("INFO: Also setting the programme series number to: $newNameSeriesNumber\n");
                     }
                 }
                 else {
                     # No season or episode information defined. Unlikely that the <seasonnum> or <episodenum> tags will be filled either. Get a date code instead
-                    ($newNameSeriesEpisodeCode) =  split('T', getMetadata(\$iplayerXmlString, 'firstbcastdate', 'firstbcast'));
-                    if(!defined($newNameSeriesEpisodeCode)) {
-                        print("WARNING: Unable to define a series, episode or date code for this programme.\n");
-                        # Unlikely that a $newNameSeriesNumber, which is needed to name Series Artwork, will be appropriate here.
+                    my ($tempDate) = getMetadata(\$iplayerXmlString, 'firstbcastdate', 'firstbcast');
+                    if(defined($tempDate)) {
+                        ($newNameSeriesEpisodeCode) =  split('T', $tempDate);
+                        $newNameSeriesNumber = $newNameSeriesEpisodeCode;
+                        print("INFO: Found a programme date code instead of a series and episode code (SxxExx) for the programme: $newNameSeriesEpisodeCode\n");
+                        print("INFO: Also setting the programme series number to the date code: $newNameSeriesNumber\n");
+                    }
+                    else {
+                        $newNameSeriesEpisodeCode = undef;
+                        print("WARNING: Unable to define either a series and episode code or date code for the programme.\n");
                     }
                 }
             }
@@ -1468,34 +1494,38 @@ if(@ARGV) {
             # NB: This will be wrong for films, but there's not much that can be done unless a more correct firstBroadcastYear is found above 
             # and bodged in place of the year portion of the date here, leaving the month and day incorrect? TODO: Do it?
             if($mediaType =~ m/\AFILM\Z/) {
+                print("INFO: Attempting to find content for the Kodi <premiered> XML tag.\n");
                 my @iplayerFirstBroadcastTagCandidates = ('firstbcastdate');
                 my $firstBroadcastDate = transferMetadata(\$iplayerXmlString, \@iplayerFirstBroadcastTagCandidates, \$kodiNfoString, 'premiered');
                 if(!defined($firstBroadcastDate)) {
                     # Tag samples:
                     # <firstbcast>2009-09-18T21:50:00+01:00</firstbcast>
                     # <firstbcastdate>2009-09-18</firstbcastdate>
-                    ($firstBroadcastDate) = split('T', getMetadata(\$iplayerXmlString, 'firstbcast'));
-                    if(defined($firstBroadcastDate)) {
-                        setMetadataSingle(\$kodiNfoString, 'premiered', $firstBroadcastDate);
+                    if(defined($firstBroadcastDate = getMetadata(\$iplayerXmlString, 'firstbcast'))) {
+                        if(defined(($firstBroadcastDate) = split('T', $firstBroadcastDate))) {
+                            setMetadataSingle(\$kodiNfoString, 'premiered', $firstBroadcastDate);
+                        }
                     }
                 }
             }
 
             # Kodi: <aired>
-            if($mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                print("INFO: Attempting to find content for the Kodi <aired> XML tag.\n");
                 my @iplayerFirstBroadcastTagCandidates = ('firstbcastdate');
                 my $firstBroadcastDate = transferMetadata(\$iplayerXmlString, \@iplayerFirstBroadcastTagCandidates, \$kodiNfoString, 'aired');
                 if(!defined($firstBroadcastDate)) {
-                    ($firstBroadcastDate) = split('T', getMetadata(\$iplayerXmlNewerType, 'firstbcast'));
-                    if(defined($firstBroadcastDate)) {
-                        setMetadataSingle(\$kodiNfoString, 'aired', $firstBroadcastDate);
+                    if(defined($firstBroadcastDate = getMetadata(\$iplayerXmlString, 'firstbcast'))) {
+                        if(defined(($firstBroadcastDate) = split('T', $firstBroadcastDate))) {
+                            setMetadataSingle(\$kodiNfoString, 'aired', $firstBroadcastDate);
+                        }
                     }
                 }
             }
 
             # Kodi: <genre>
             # TODO: for TV programmes, this should go in the TvShow nfo file. The TvEpisode nfo files will have this value ignored if <genre> is present in a parent dir TvShow nfo File.
-            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
                 # Transfer iplayer <category> and <categories> tags to Kodi's <genre> tags
                 if(transferMetadataCategories(\$iplayerXmlString, \$kodiNfoString)) {
                     print("SUCCESS: Finished transferring iplayer categories to Kodi genres.\n");
@@ -1508,7 +1538,8 @@ if(@ARGV) {
             # Kodi: <bbc_pid> 
             # NB: not an official Kodi tag, but added to keep a record of the official identity of the original BBC programme
             # Add to all
-            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                print("INFO: Attempting to find content for the Kodi <bbc_pid> XML tag.\n");
                 if(setMetadataSingle(\$kodiNfoString, 'bbc_pid', $mediaFilePid)) {
                     print("SUCCESS: Added iplayer programme PID to Kodi nfo metadata file.\n");
                 }
@@ -1519,11 +1550,19 @@ if(@ARGV) {
 
             # Change empty XML tags from <tag/> to <tag></tag> to satisfy Kodi (even though </tag> is still technically valid XML)
             $kodiNfoString =~ s/<(.*)\/>/<$1><\/$1>/g;
-            print("INFO: Created the following Kodi nfo metadata file for the film $newNameShowName.\n");
+            print("INFO: Created the following Kodi nfo metadata file for $mediaFileSourceFilenameNoExtension now called $newNameShowName.\n");
             # Print fully poplulated Kodi nfo metadata string and a final newline
             print("$kodiNfoString" . "\n");
 
             # Now should have all information necessary to create a new Kodi compatible filename
+            
+            # TODO: Decide if it is worth adding the episode name to the filename in the cases where it is just "Episode 1"... and is placed redundantly right after the S01E01 code.
+            if(defined($newNameEpisodeName)) {
+                if($newNameEpisodeName =~ m/\A[Ee]pisode [0-9]{1,3}\Z/) {
+                    $newNameEpisodeName = undef;
+                }
+            }
+
             # Occasionally a programme or episode name has been observed to contain one or more '/' characters. Most often because of a date in the programme name.
             # Remove some forbidden characters from filename with no replacement (most are forbidden in Windows)
             # Replace other forbidden characters from filename with a hyphen (most are forbidden in Windows)
@@ -1535,36 +1574,26 @@ if(@ARGV) {
                     $_ =~ s/\s/$separator/g;
                 }
             }
-            # Build the filenames as appropriate for each media type
+
+            # Bracket the year
             if(defined($newNameYear)) {
-                $newNameYear = $separator . '(' . $newNameYear . ')';
-            }
-            if(defined($newNameSeriesEpisodeCode)) {
-                $newNameSeriesEpisodeCode = $separator . $newNameSeriesEpisodeCode;
-            }
-            # TODO: Decide if it is worth adding the episode name to the filename in the cases where it is just "Episode 1"... and is placed redundantly right after the S01E01 code.
-            if(defined($newNameEpisodeName)) {
-                if($newNameEpisodeName =~ m/\A[Ee]pisode [0-9]{1,3}\Z/) {
-                    $newNameEpisodeName = undef;
-                }
-                else {
-                    $newNameEpisodeName = $separator . $newNameEpisodeName;
-                }
+                $newNameYear = '(' . $newNameYear . ')';
             }
             
             # Assemble the new Kodi compatible filename
-            foreach($newNameShowName, $newNameYear, $newNameSeriesEpisodeCode, $newNameEpisodeName) {
+            $newFilenameComplete = $newNameShowName;
+            foreach($newNameYear, $newNameSeriesEpisodeCode, $newNameEpisodeName) {
                 if(defined($_)) {
-                    $newFilenameComplete .= $_;
+                    $newFilenameComplete .= ($separator . $_);
                 }
             }
-            $newFilenameComplete = $newNameShowName . $newNameYear . $newNameSeriesEpisodeCode . $newNameEpisodeName;    
+            # $newFilenameComplete = $newNameShowName . $newNameYear . $newNameSeriesEpisodeCode . $newNameEpisodeName;
 
             # Now create the destination directory full path - which has the same name as the files it will contain
             if($mediaType =~ m/\AFILM\Z/) {
                 $mediaFileDestinationDirectory = $destinationDir . $destinationSubdirFilm . $newFilenameComplete . '/';
             }
-            elsif($mediaType =~ m/\ATV\Z/) { # Ultimiately MUSIC - or rather RADIO and PODCASTS will follow the same directory structure as TV
+            elsif($mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) { # Ultimiately MUSIC - or rather RADIO and PODCASTS will follow the same directory structure as TV
                 $mediaFileDestinationDirectory = $destinationDir . $destinationSubdirTv . $newNameShowName . '/' . $newNameSeriesName . '/' . $newFilenameComplete . '/';
                 $mediaFileSeriesAtworkDirectory = $destinationDir . $destinationSubdirTv . $newNameShowName . '/';
             }
@@ -1594,16 +1623,19 @@ if(@ARGV) {
             # NFO - COMMON TO ALL MEDIA
             # Copy any EXISTING, OLD Kodi nfo file from the source folder to the destination folder adding the suffix .old
             # iplayer-generated Kodi nfo files are old, obsolete and are not used in the creation of the new Kodi nfo files. 
-            if(-f . '.nfo') {
+            if(-f $mediaFileFullPathNoExtension . '.nfo') {
                 &$transfer($mediaFileFullPathNoExtension . '.nfo', $mediaFileDestinationDirectory . $newFilenameComplete . '.nfo.old');
+                print("SUCCESS: Found an existing Kodi nfo metadata file for the programme and transferred it to the destination directory.\n");
             } # There is deliberately no 'else' clause for nfo files here.
 
             # XML - COMMON TO ALL MEDIA
             # transfer the original XML programme metadata file to the destination directory
             if(-f $metadataFileXml) {
                 &$transfer($metadataFileXml, $mediaFileDestinationDirectory . $newFilenameComplete . '.xml');
+                print("SUCCESS: Found the existing XML metadata file for the programme and transferred it to the destination directory.\n");
                 if(-f $metadataFileXml . '.old') {
                     &$transfer($metadataFileXml . '.old', $mediaFileDestinationDirectory . $newFilenameComplete . '.xml.old');
+                    print("SUCCESS: Found an existing old XML metadata file for the programme and transferred it to the destination directory.\n");
                 }
             } # There is no else. If an XML metadata file doesn't exist already and hasn't been downloaded by now, it is not obtainable at all and we really shouldn't have got this far without one.
             
@@ -1611,9 +1643,12 @@ if(@ARGV) {
             # transfer the media file itself to the destination directory. No if -f check, existance already proven
             if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
                 &$transfer($mediaFile, $mediaFileDestinationDirectory . $newFilenameComplete . '.mp4');
+                print("SUCCESS: Transferred the video file for the programme to the destination directory.\n");
+
             }
             elsif($mediaType =~ m/\ARADIO\Z/) {
                 &$transfer($mediaFile, $mediaFileDestinationDirectory . $newFilenameComplete . '.m4a');
+                print("SUCCESS: Transferred the audio file for the programme to the destination directory.\n");
             }
              
             # JPG - COMMON TO ALL MEDIA
@@ -1622,9 +1657,9 @@ if(@ARGV) {
             # NB: $mediaFileThumbnail MUST be defined BEFORE the get_iplayer XML metadata is re-downloaded as that changes the <thumbnail> URL information from what was originally downloaded.
             if(-f $mediaFileFullPathNoExtension . '.jpg') {
                 if ($mediaFileThumbnail !~ m/1920x1080/) {
-                    print("WARNING: jpg metadata file exists but is low resolution. Attempting to download high resolution version.");
+                    print("WARNING: Found an existing jpg image file but is low resolution. Attempting to download high resolution version.");
                     my ($newJpg) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete . '-fanart', $mediaFilePid, $mediaFileVersion, 'jpg');
-                    if(-f $newJpg) {
+                    if(defined($newJpg) && -f $newJpg) {
                         print("SUCCESS: Downloaded a new high resolution jpg metadata file to the destination directory as a fanart image.\n");
                     }
                     else {
@@ -1633,18 +1668,18 @@ if(@ARGV) {
                             &$transfer($mediaFileFullPathNoExtension . '.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-fanart.jpg');
                         }
                         else {
-                            print("WARNING: Neither a new high resolution jpg megadata file can be downloaded, nor is there an existing low resolution jpg metadata file available for this programme.\n");
+                            print("WARNING: Neither a new high resolution jpg megadata file can be downloaded, nor is there an existing low resolution jpg metadata file available for the programme.\n");
                         }
                     }
                 }
                 else {
                     &$transfer($mediaFileFullPathNoExtension . '.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-fanart.jpg');
-                    print("INFO: Transferred jpg image file to destination directoty as a fanart image.\n");
+                    print("SUCCESS: Transferred jpg image file to destination directory as a fanart image.\n");
                 }
             }
             else {
                 my ($newJpg) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete . '-fanart', $mediaFilePid, $mediaFileVersion, 'jpg');
-                if(-f $newJpg) {
+                if(defined($newJpg) && -f $newJpg) {
                     print("SUCCESS: Downloaded a new high resolution jpg image file to the destination directory as a fanart image.\n");
                 }
             }
@@ -1661,7 +1696,7 @@ if(@ARGV) {
                     }
                     else {
                         my ($newSeriesJpg) = downloadMetadataFile($mediaFileSeriesAtworkDirectory, $seriesArtworkFilename, $mediaFilePid, $mediaFileVersion, 'series.jpg');
-                        if(-f $newSeriesJpg) {
+                        if(defined($newSeriesJpg) && -f $newSeriesJpg) {
                             print("SUCCESS: Downloaded a new programme series jpg image file to the destination directory.\n");
                         }
                         else {
@@ -1678,14 +1713,16 @@ if(@ARGV) {
             if($mediaType =~ m /\ARADIO\Z/) {
                 if(-f $mediaFileFullPathNoExtension . '-thumb.jpg') {
                     &$transfer($mediaFileFullPathNoExtension . '-thumb.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-thumb.jpg');
+                    print("SUCCESS: Found an existing square jpg image file for the programme and transferred it to the destination directory.\n");
                 }
                 else {
+                    print("INFO: No existing square jpg image file found for the programme.\n");
                     my ($newSquareJpg) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete . '-thumb', $mediaFilePid, $mediaFileVersion, 'square.jpg');
-                    if(-f $newSquareJpg) {
-                        print("Success: Downloaded a new programme square jpg file to the destination directory.\n");
+                    if(defined($newSquareJpg) && -f $newSquareJpg) {
+                        print("SUCCESS: Downloaded a new programme square jpg image file to the destination directory.\n");
                     }
                     else {
-                        print("WARNING: Unable to download a new programme square jpg file to the destination directory.\n");
+                        print("WARNING: Unable to download a new programme square jpg image file to the destination directory.\n");
                     }
                 }
             }
@@ -1696,10 +1733,12 @@ if(@ARGV) {
             if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
                 if(-f $mediaFileFullPathNoExtension . '.srt') {
                     &$transfer($mediaFileFullPathNoExtension . '.srt', $mediaFileDestinationDirectory . $newFilenameComplete . '.srt');
+                    print("SUCCESS: Found an existing subtitles file for the programme and transferred it to the destination directory.\n");
                 }
                 else {
+                    print("INFO: No existing subtitles file found for the programme.\n");
                     my ($newSrt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'srt');
-                    if(-f $newSrt) {
+                    if(defined($newSrt) && -f $newSrt) {
                         print("SUCCESS: Downloaded a new subtitles file to the destination directory.\n");
                     }
                     else {
@@ -1712,11 +1751,12 @@ if(@ARGV) {
             # Transfer programme credits text file to the destination directory
             if(-f $mediaFileFullPathNoExtension . '.credits.txt') {
                 &$transfer($mediaFileFullPathNoExtension . '.credits.txt', $mediaFileDestinationDirectory . $newFilenameComplete . '.credits.txt');
+                print("SUCCESS: Found an existing credits text file for the programme and transferred it to the destination directory.\n");
             }
             else {
-                my $newCreditsTxt = undef;
-                ($newCreditsTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'credits.txt');
-                if(-f $newCreditsTxt) {
+                print("INFO: No existing credits text file found for the programme.\n");
+                my ($newCreditsTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'credits.txt');
+                if(defined($newCreditsTxt) && -f $newCreditsTxt) {
                     print("SUCCESS: Downloaded a new programme credits text file to the destination directory.\n");
                 }
                 else {
@@ -1730,10 +1770,12 @@ if(@ARGV) {
             if($mediaType =~ m /\ARADIO\Z/) {
                 if(-f $mediaFileFullPathNoExtension . '.cue') {
                     &$transfer($mediaFileFullPathNoExtension . '.cue', $mediaFileDestinationDirectory . $newFilenameComplete . '.cue');
+                    print("SUCCESS: Found an existing music cue sheet file for the programme and transferred it to the destination directory.\n");
                 }
                 else {
+                    print("INFO: No existing music cue sheet file found for the programme.\n");
                     my ($newCue) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'cue');
-                    if(-f $newCue) {
+                    if(defined($newCue) && -f $newCue) {
                         print("SUCCESS: Downloaded a new programme music cue sheet file to the destination directory.\n");
                     }
                     else {
@@ -1747,14 +1789,16 @@ if(@ARGV) {
             # NB: get_iplayer's github wiki notes that track lists are often wrong: https://github.com/get-iplayer/get_iplayer/wiki/proginfo#tracklist
             if(-f $mediaFileFullPathNoExtension . '.tracks.txt') {
                 &$transfer($mediaFileFullPathNoExtension . '.tracks.txt', $mediaFileDestinationDirectory . $newFilenameComplete . '.tracks.txt');
+                print("SUCCESS: Found an existing music track list file for the programme and transferred it to the destination directory.\n");
             }
             else {
+                print("INFO: No existing music track list file found for the programme.\n");
                 my ($newTracksTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'tracks.txt');
-                if(-f $newTracksTxt) {
-                    print("SUCCESS: Downloaded a new programme music cue sheet file to the destination directory.\n");
+                if(defined($newTracksTxt) && -f $newTracksTxt) {
+                    print("SUCCESS: Downloaded a new programme music track list file to the destination directory.\n");
                 }
                 else {
-                    print("WARNING: Unable to download a new programme music cue sheet file to the destination directory.\n");
+                    print("WARNING: Unable to download a new programme music track list file to the destination directory.\n");
                 }
             }
         }

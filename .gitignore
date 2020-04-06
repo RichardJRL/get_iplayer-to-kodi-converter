@@ -36,4 +36,5 @@ inc/
 
 # Non-essential project files
 categories/*.list
-output.txt
+output.log
+error.log
