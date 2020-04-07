@@ -1240,7 +1240,8 @@ if(@ARGV) {
                         setMetadataSingle(\$kodiNfoString, 'title', $newNameEpisodeName);
                         print("INFO: New TV programme episode name is $newNameEpisodeName\n");
                     }
-                    elsif(defined($newNameEpisodeName = getMetadata(\$iplayerXmlString, 'episode', 'title'))) {
+                    elsif(defined($newNameEpisodeName = getMetadata(\$iplayerXmlString, 'episode'))) {
+                        # Previously 'title' was included in getMetadata after 'episode but it was responsible for redundantly double naming-programmes e.g. Spitfire_(2019)_2019-09-26_Spitfire.mp4
                         if($newNameEpisodeName =~ m/\. /) {
                             # the tag <episode> returned a result prefixed by the episode number, split it, take the last part
                             my @episodeArray = split('. ', $newNameEpisodeName);
@@ -1257,8 +1258,10 @@ if(@ARGV) {
                     else {
                         # No formal episode name for this media file defined in the iplayer XML file.
                         # TODO: Process the filename or break here to leave this program for manual transfer.
-                        print("WARNING: No name defined for this TV programme in its iplayer XML metadata file. Falling back on using the filename $mediaFileSourceFilenameNoExtension as the TV programme name instead.\n");
-                        $newNameEpisodeName = $mediaFileSourceFilenameNoExtension;
+                        # print("WARNING: No episode name defined for this TV programme in its iplayer XML metadata file. Falling back on using the filename $mediaFileSourceFilenameNoExtension as the TV programme name instead.\n");
+                        # $newNameEpisodeName = $mediaFileSourceFilenameNoExtension;
+                        print("WARNING: No episode name defined for this TV programme in its iplayer XML metadata file.\n");
+                        # OK to leave undef as hopefully the episode will still be uniquely identified by its SxxExx $newNameSeriesEpisodeCode
                     }
                 }
             }
@@ -1431,7 +1434,11 @@ if(@ARGV) {
                     }
                     # Deal with year range series names e.g. 2019-2020
                     elsif($newNameSeriesName =~ m/\A[1-2]{1}[0-9]{3}-[1-2]{1}[0-9]{3}\Z/) {
-                        print("INFO: Found a standard date code (instead of a series name) \'$newNameSeriesName\' for the programme.\n");
+                        print("INFO: Found a standard double year code (instead of a series name) \'$newNameSeriesName\' for the programme.\n");
+                        # This is totally fine.
+                    }
+                    elsif($newNameSeriesName =~ m/\A[1-2]{1}[0-9]{3}\Z/) {
+                        print("INFO: Found a standard single year code (instead of a series name) \'$newNameSeriesName\' for the programme.\n");
                         # This is totally fine.
                     }
                     else {
@@ -1566,15 +1573,22 @@ if(@ARGV) {
                 }
             }
 
-            # Occasionally a programme or episode name has been observed to contain one or more '/' characters. Most often because of a date in the programme name.
             # Remove some forbidden characters from filename with no replacement (most are forbidden in Windows)
             # Replace other forbidden characters from filename with a hyphen (most are forbidden in Windows)
             # Replace whitespace in file and directory names with the chosen separator character
             foreach($newNameShowName, $newNameSeriesName, $newNameEpisodeName, $newNameSeriesNumber, $newNameSeriesEpisodeCode, $newNameYear) {
                 if(defined($_)) {
-                    $_ =~ s/[<>:|\/\\]/-/g;
-                    $_ =~ s/["'`?*]//g;
+                    $_ =~ s/[<>|\\]/-/g;
+                    $_ =~ s/["'`?*%,]//g;
+                    $_ =~ s/: /$separator-$separator/g;
+                    $_ =~ s/\//$separator-$separator/g;
+                    $_ =~ s/:/-/g;
+                    $_ =~ s/\.+\s*/$separator/g;
+                    $_ =~ s/&amp;/and/g;
+                    $_ =~ s/@ /at /g;
+                    $_ =~ s/@(\S)/at $1/g;
                     $_ =~ s/\s/$separator/g;
+                    $_ =~ s/$separator{2,}/$separator/g;
                 }
             }
 
@@ -1590,7 +1604,6 @@ if(@ARGV) {
                     $newFilenameComplete .= ($separator . $_);
                 }
             }
-            # $newFilenameComplete = $newNameShowName . $newNameYear . $newNameSeriesEpisodeCode . $newNameEpisodeName;
 
             # Now create the destination directory full path - which has the same name as the files it will contain
             if($mediaType =~ m/\AFILM\Z/) {
