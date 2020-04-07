@@ -1418,11 +1418,14 @@ if(@ARGV) {
                         $newNameSeriesName = undef;
                         print("INFO: Series Name is the same as the Show Name for this TV programme, therefore omitting the Series Name and subdirectory.\n");
                     }
-                    # Deal with simple 'Series NN' series names, adding zero-padding to any series number under 10
-                    elsif($newNameSeriesName =~ m/\ASeries [0-9]{1,}\Z/) {
+                    # Deal with simple 'Series NN ...' series names, adding zero-padding to any series number under 10
+                    elsif($newNameSeriesName =~ m/\ASeries [0-9]{1,}/) {  #  m/\ASeries [0-9]{1,}\Z/
                         # Zero-pad any series number under 10
                         if($newNameSeriesName =~ m/\ASeries [0-9]{1}\Z/) {
                             $newNameSeriesName =~ s/\A(Series) ([0-9]{1})\Z/$1 0$2/;
+                        }               
+                        if($newNameSeriesName =~ m/\ASeries [0-9]{1} .*\Z/) { # Match 'Series 1-9 NamedSuffix' strings, single digit series that need zero padding
+                            $newNameSeriesName =~ s/(\ASeries) ([0-9]{1}) (.*)/$1 0$2 $3/;
                         }
                         print("INFO: Found a standard series name \'$newNameSeriesName\' for the programme.\n");
                     }
