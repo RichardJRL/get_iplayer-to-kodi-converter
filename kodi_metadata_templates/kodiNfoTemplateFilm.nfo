@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<movie>
+    <title></title>
+    <originaltitle></originaltitle>
+    <userrating>0</userrating>
+    <outline></outline>
+    <plot></plot>
+    <tagline></tagline>
+    <runtime></runtime>
+    <mpaa></mpaa>
+    <uniqueid type="" default="true"></uniqueid>
+    <genre></genre>
+    <country></country>
+    <credits></credits>
+    <director></director>
+    <premiered></premiered>
+    <studio></studio>
+    <actor>
+        <name></name>
+        <role></role>
+        <order></order>
+        <thumb></thumb>
+    </actor>
+</movie> 

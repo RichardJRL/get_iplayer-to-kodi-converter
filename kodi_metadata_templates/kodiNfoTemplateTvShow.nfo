@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tvshow>
+    <title></title>
+    <plot></plot>
+    <userrating></userrating>
+    <mpaa></mpaa>
+    <uniqueid type="" default="true"></uniqueid>
+    <genre></genre>
+    <premiered></premiered>
+    <status></status>
+    <studio></studio>
+    <actor>
+        <name></name>
+        <role></role>
+        <order></order>
+        <thumb></thumb>
+    </actor>
+    <namedseason number="1"></namedseason>
+</tvshow>

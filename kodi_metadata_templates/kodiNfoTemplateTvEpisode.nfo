@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<episodedetails>
+    <title></title>
+    <showtitle></showtitle>
+    <userrating></userrating>
+    <plot></plot>
+    <runtime></runtime>
+    <uniqueid type="" default="true"></uniqueid>
+    <credits></credits>
+    <director></director>
+    <aired></aired>
+    <actor>
+        <name></name>
+        <role></role>
+        <order></order>
+        <thumb></thumb>
+    </actor>
+</episodedetails> 

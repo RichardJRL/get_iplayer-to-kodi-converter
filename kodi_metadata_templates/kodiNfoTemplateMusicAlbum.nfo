@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<album>
+    <title></title>
+    <genre></genre>
+    <style></style>
+    <mood></mood>
+    <theme></theme> 
+    <compilation></compilation>
+    <review></review>
+    <type></type>
+    <label></label>
+    <rating max="10"></rating>
+    <userrating max="10"></userrating>
+    <votes></votes>
+    <year></year>
+    <albumArtistCredits>
+        <artist></artist>
+        <musicBrainzArtistID></musicBrainzArtistID>
+    </albumArtistCredits>
+</album> 
