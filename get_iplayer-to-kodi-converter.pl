@@ -15,19 +15,12 @@ use XML::LibXML;
 #NB: Can copy operations and directory creation be carried out while preserving timestamps?
 
 # variables to hold command line arguments
-my $claConvert = 0;     # Convert get_iplayer to Plex format. Boolean, 0=false, 1=true 
-my $claRevert = 0;      # (Attempt to) revert Plex format to get_iplayer. Boolean, 0=false, 1=true
-my $claRecurse = 0;     # Recurse into subdirectories of source directory. Boolean, 0=false, 1=true 
-# Command line arguments for type detection and directory selection are commented out as the categorisation and sorting are now automatic
-# TODO: Delete once categorisation and sorting logic confirmed working
-# my @claType;            # Array to hold unchecked content type values
-# my $claTypeFilm = 0;    # Force conversion of files according to Film conversion rules
-# my $claTypeTv = 0;      # Force conversion of files according to TV programme conversion rules
-# my $claTypeMusic = 0;   # Force conversion of files according to Music conversion rules
+my $claRecurse = 0;     # Recurse into subdirectories of source directory. Boolean, 0=false, 1=true
+my $claBehaviour = 0;   # Sets whether the media files are copied (0) or moved (1) from the source directory to the destination directory
+my $claForceTypeFilm = 0;    # Force conversion of files according to Film conversion rules
+my $claForceTypeTv = 0;      # Force conversion of files according to TV programme conversion rules
+my $claForceTypeRadio = 0;   # Force conversion of files according to Radio conversion rules
 # TODO: implement command line arguments for custom subdirectory names
-my $claDirFilm ;        # Custom name for the directory to hold films
-my $claDirTv;           # Custom name for the directory to hold TV programmes
-my $claDirMusic;        # Custom name for the directory to hold music, radio programmes and podcasts
 my @claSource;          # Array of File::Spec objects representing source files or directories to search for media to convert
 my @claDestination;     # File::Spec object for the base destination directory of converted media
 my $claInvalid = 0;     # Counter for invalid command line arguments.
@@ -40,9 +33,9 @@ my @sourceDirs;         # Only the valid source directories harvested from the c
 my @completeListOfDirs; # Entire list of all source directories found when getMediaFiles called (used for debug purposes only)
 my @sourceMediaFiles;
 my $destinationDir;
-my $destinationSubdirFilm = 'films';  # do not include trailing slash
-my $destinationSubdirTv = 'tv';       # not include trailing slash
-my $destinationSubdirMusic = 'radio'; # not include trailing slash
+my $destinationSubdirFilm = 'films';  # The default subdirectory if no custom subdirectory is specified. Do not include trailing slash here
+my $destinationSubdirTv = 'tv';       # The default subdirectory if no custom subdirectory is specified. Do not include trailing slash here
+my $destinationSubdirRadio = 'radio'; # The default subdirectory if no custom subdirectory is specified. Do not include trailing slash here
 
 
 # other major variables
@@ -731,10 +724,22 @@ sub openMetadataFile {
 # subroutine: print program usage information
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub printUsageInformation {
-    print("A combination of the following command line arguments are required for the proper functioning of this program\n");
-    # TODO: Write usage information message
+    print("\n");
+    print("The following command line arguments are required for the proper functioning of this program:\n");
+    print("--source [FILE|DIRECTORY] : Mandatory, more than one allowed. Specifies a media file or directory of media files to convert.\n");
+    print("--destination [DIRECTORY] : Mandatory. Specifies the destination directory in which the converted media files will be placed.\n");
+    print("\n");
+    print("The following command line arguments can optionally be added to adjust the functioning of this program:\n");
+    print("--behaviour [copy|move]: Optional, default is copy. Specifies whether media files are copied or moved to the destination directory.\n");
+    print("--recurse : Optional. When specified, the program will recurse in to subdirectories of the source directory to search for media files.\n");
+    print("--force-type [film|tv|radio] : Optional. Forces the program to process all media files according to 'film', 'tv' or 'radio' rules, regardless of their actual type.\n");
+    print("--get-iplayer [PATH] : Optional. Allows the user to provide the location of get_iplayer if it is installed outside of the system's \$PATH.\n");
+    print("--separator ['_'|'.'|' '] : Optional, default is underscore '_'. Specifies the separator character used between words in the destination file and directory names. The choises are undersore '_', period '.' and whitespace ' '.\n");
+    print("--subdir-films [subdirectory_name] : Optional, default is 'films'. Specifies a custom subdirectory name for films within the destination directory.\n");
+    print("--subdir-tv [subdirectory_name] : Optional, default is 'tv'. Specifies a custom subdirectory name for tv programmes within the destination directory.\n");
+    print("--subdir-films [directory name] : Optional, default is 'radio'. Specifies a custom subdirectory name for radio programmes within the destination directory.\n");
+    print("\n");
 }
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # MAIN PROGRAM STARTS HERE
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -743,27 +748,46 @@ if(@ARGV) {
     print("INFO: Processing command line arguments and checking for errors.\n");
     # Minimal processing of command line arguments
     while(my $currentArg = shift(@ARGV)) {
-        if($currentArg =~ m/\A--convert\Z/) {
-            $claConvert = 1;
-        }
-        elsif($currentArg =~ m/\A--revert\Z/) {
-            $claRevert = 1;
-        }
-        elsif($currentArg =~ m/\A--recurse\Z/) {
+        if($currentArg =~ m/\A--recurse\Z/) {
             $claRecurse = 1;
         }
-        # elsif($currentArg =~ m/\A--type/) {
-        #     $currentArg = shift(@ARGV);
-        #     if(defined($currentArg)) {
-        #         if(length($currentArg) > 0) {
-        #         push(@claType, $currentArg);
-        #         }
-        #         else {
-        #             print("ERROR: --type command line argument requires a content type to be specified.\n");
-        #             $claInvalid++;
-        #         }
-        #     }  
-        # }
+        elsif($currentArg =~ m/\A--behaviou?r\Z/) {
+            $currentArg = shift(@ARGV);
+            if(defined($currentArg)) {
+                $currentArg = lc($currentArg);
+                if($currentArg =~ m/\Acopy\Z/) {
+                    $transfer = \&File::Copy::copy;
+                    $claBehaviour = 0;
+                }
+                elsif($currentArg =~ m/\Amove\Z/) {
+                    $transfer = \&File::Copy::move;
+                    $claBehaviour = 1;
+                }
+                else {
+                    print("ERROR: --behaviour command line argument requires either 'copy' or 'move' to be specified.\n");
+                    $claInvalid++;
+                }
+            }
+        }
+        elsif($currentArg =~ m/\A--force-type/) {
+            $currentArg = shift(@ARGV);
+            if(defined($currentArg)) {
+                $currentArg = lc($currentArg);
+                if($currentArg =~ m/\Afilm\Z/) {
+                    $claForceTypeFilm++;
+                }
+                elsif($currentArg =~ m/\Atv\Z/) {
+                    $claForceTypeTv++;
+                }
+                elsif($currentArg =~ m/\Aradio\Z/) {
+                    $claForceTypeRadio++;
+                }
+                else {
+                    print("ERROR: --force-type command line argument requires a media type of 'film', 'tv' or 'radio' to be specified.\n");
+                    $claInvalid++;
+                }
+            }  
+        }
         elsif($currentArg =~ m/\A--source/) {
             while($currentArg = shift(@ARGV)) {
                 if($currentArg !~ m/\A--/) {
@@ -808,10 +832,12 @@ if(@ARGV) {
                 }
                 else {
                     print("ERROR: --get-iplayer command line argument requires a valid path to be specified. \'$currentArg\' is not a valid path.\n");
+                    $claInvalid++;
                 }
             }
             else {
                 print("ERROR: --get-iplayer command line argument requires a valid path to be specified.\n");
+                $claInvalid++;
             }
         }
         elsif($currentArg =~ m/\A--separator\Z/) {
@@ -822,10 +848,60 @@ if(@ARGV) {
                 }
                 else {
                     print("ERROR: --separator command line argument requires a valid character to be specified. Valid characters are a single space ' ', period '.', or underscore '_'.\n");
+                    $claInvalid++;
                 }
             }
             else {
                 print("ERROR: --separator command line argument requires a valid character to be specified. Valid characters are a single space ' ', period '.', or underscore '_'.\n");
+                $claInvalid++;
+            }
+        }
+        elsif($currentArg =~ m/\A--subdir-films\Z/) {
+            $currentArg = shift(@ARGV);
+            if(defined($currentArg)) {
+                if($currentArg !~ m/\A--/) {
+                    $destinationSubdirFilm = $currentArg;
+                }
+                else {
+                    print("ERROR: --subdir-films command line argument requires the name (not full path) of a subdirectory inside the --destination directory.\n");
+                    $claInvalid++;
+                }
+            }
+            else {
+                print("ERROR: --subdir-films command line argument requires the name (not full path) of a subdirectory inside the --destination directory.\n");
+                $claInvalid++;
+            }
+        }
+         elsif($currentArg =~ m/\A--subdir-tv\Z/) {
+            $currentArg = shift(@ARGV);
+            if(defined($currentArg)) {
+                if($currentArg !~ m/\A--/) {
+                    $destinationSubdirTv = $currentArg;
+                }
+                else {
+                    print("ERROR: --subdir-tv command line argument requires the name (not full path) of a subdirectory inside the --destination directory.\n");
+                    $claInvalid++;
+                }
+            }
+            else {
+                print("ERROR: --subdir-tv command line argument requires the name (not full path) of a subdirectory inside the --destination directory.\n");
+                $claInvalid++;
+            }
+        }
+         elsif($currentArg =~ m/\A--subdir-radio\Z/) {
+            $currentArg = shift(@ARGV);
+            if(defined($currentArg)) {
+                if($currentArg !~ m/\A--/) {
+                    $destinationSubdirRadio = $currentArg;
+                }
+                else {
+                    print("ERROR: --subdir-radio command line argument requires the name (not full path) of a subdirectory inside the --destination directory.\n");
+                    $claInvalid++;
+                }
+            }
+            else {
+                print("ERROR: --subdir-radio command line argument requires the name (not full path) of a subdirectory inside the --destination directory.\n");
+                $claInvalid++;
             }
         }
         else {
@@ -835,11 +911,6 @@ if(@ARGV) {
     }
 
     # basic sanity checking on the collected command line arguments
-    # cannot both convert and revert NOR neither convert nor revert
-    if($claConvert == $claRevert) {
-        print("ERROR: EITHER --convert OR --revert MUST be specified, NOT neither/both.\n");
-        $claErrors++;
-    }
     # check at least one path in $claSource array
     if(@claSource == 0) {
         print("ERROR: No --source argument supplied.\n");
@@ -854,26 +925,11 @@ if(@ARGV) {
         print("ERROR: More than one --destination argument supplied.\n");
         $claErrors++;
     }
-    # # check only one type of content specified
-    # if(@claType != 1) {
-    #     print("ERROR: One media type must be specified with the --type command line argument.\n");
-    #     $claErrors++;
-    # }
-    # else {
-    #     if($claType[0] =~ m/\Afilm\Z/ || $claType[0] =~ m/\Amovie\Z/) {
-    #         $claTypeFilm = 1;
-    #     }
-    #     elsif($claType[0] =~ m/\Atv\Z/ || $claType[0] =~ m/\ATV\Z/) {
-    #         $claTypeTv = 1;
-    #     }
-    #     elsif($claType[0] =~ m/\Amusic\Z/) {
-    #         $claTypeMusic = 1;
-    #     }
-    #     else {
-    #         print("ERROR: Unknown content type \'$claType[0]\' supplied with --type= command line argument.\n");
-    #         $claInvalid++;
-    #     }
-    # }
+    # check only one type of content specified
+    if(($claForceTypeTv + $claForceTypeFilm + $claForceTypeRadio) > 1) {
+        print("ERROR: The --force-type command line argument must only be used once to specify a single media type of 'film', 'tv' or 'radio'.\n");
+        $claErrors++;
+    }
 
     # carry out initial processing of $claSource and $claDestination arrays
     foreach(@claSource) {
@@ -902,18 +958,17 @@ if(@ARGV) {
         if(-d $claDestination[0]) {
             $destinationDir = $claDestination[0];
             # ensure the consistent appearance of a trailing slash after the directory name
+            # also remove any leading slashes from the subdirectory names. 
             $destinationDir =~ s/\/\Z//;
             $destinationDir .= '/';
-            if($destinationSubdirFilm !~ m/\/\Z/) {
-                $destinationSubdirFilm .= '/';
+            foreach($destinationSubdirFilm, $destinationSubdirTv, $destinationSubdirRadio) {
+                if($_ !~ m/\/\Z/) {
+                    $_ .= '/';
+                }
+                if($_ =~ m/\A\//) {
+                    $_ =~ s/\A\/(.*)/$1/;
+                }
             }
-            if($destinationSubdirTv !~ m/\/\Z/) {
-                $destinationSubdirTv .= '/';
-            }
-            if($destinationSubdirMusic !~ m/\/\Z/) {
-                $destinationSubdirMusic .= '/';
-            }
-            
         }
         else {
             print("ERROR: Path specified after --destination is not a valid directory: $claDestination[0]\n");
@@ -1011,8 +1066,10 @@ if(@ARGV) {
     foreach my $mediaFile (@sourceMediaFiles) {
         # Full path with the media file extension removed for constructing expected metadata filenames later
         my $mediaFileFullPathNoExtension = $mediaFile;
+        my $mediaFileExtension = $mediaFile;
         $mediaFileFullPathNoExtension =~ s/\.mp4\Z//;
         $mediaFileFullPathNoExtension =~ s/\.m4a\Z//;
+        $mediaFileExtension =~ s/.*(\.m[p4a]{2}\Z)/$1/;
         my $mediaFilePid;
         my $mediaFileVersion;
         my $mediaFileThumbnail;
@@ -1177,26 +1234,41 @@ if(@ARGV) {
             my $iplayerTagCategories = getMetadata(\$iplayerXmlString, 'categories');
 
             print("INFO: Attempting to classify media file.\n");
-            if($mediaFileSourceFilename =~ m/\.m4a\Z/ && $iplayerTagType =~ m/[Rr]adio/) {
+            if(($claForceTypeRadio == 1) || ($mediaFileSourceFilename =~ m/\.m4a\Z/ && $iplayerTagType =~ m/[Rr]adio/)) { # NB: for Logical Or, left operand takes precedence
                 $mediaType = 'RADIO';
-                print("INFO: Media file classified as: RADIO.\n");
+                if($claForceTypeRadio == 1) {
+                    print("INFO: Media file FORCIBLY classified as: RADIO.\n");
+                }
+                else {
+                    print("INFO: Media file logically classified as: RADIO.\n");
+                }
                 # NB: Opening of kodiNfoTemplateTvEpisode.nfo here, as per $mediaType TV because RADIO has more in common with TV programmes than Music organisation.
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateTvEpisode.nfo");
                 # TODO: open additional filehandle for the <tvshow> nfo template
                 print("INFO: Using TV type rules to process the audio file $mediaFileSourceFilename (This is NOT a mistake)\n");
                 print("INFO: Creating <epidsodedetails> type Kodi compatible nfo metadata file.\n");
             }
-            elsif($mediaFileSourceFilename =~ m/\.mp4\Z/ && $iplayerTagCategories =~ m/[Ff]ilm/) {
+            elsif(($claForceTypeFilm == 1) || ($mediaFileSourceFilename =~ m/\.mp4\Z/ && $iplayerTagCategories =~ m/[Ff]ilm/)) {
                 $mediaType = 'FILM';
-                print("INFO: Media file classified as: FILM.\n");
+                if($claForceTypeFilm == 1) {
+                    print("INFO: Media file FORCIBLY classified as: FILM.\n");
+                }
+                else {
+                    print("INFO: Media file logically classified as: FILM.\n");
+                }
                 # open the <movie> nfo template
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateFilm.nfo");
                 print("INFO: Using FILM type rules to process the video file $mediaFileSourceFilename\n");
                 print("INFO: Creating <movie> type Kodi compatible nfo metadata file.\n");
             }
-            elsif($mediaFileSourceFilename =~ m/\.mp4\Z/) {
+            elsif(($claForceTypeTv == 1) || ($mediaFileSourceFilename =~ m/\.mp4\Z/)) {
                 $mediaType = 'TV';
-                print("INFO: Media file classified as: TV.\n");
+                if($claForceTypeTv == 1) {
+                    print("INFO: Media file FORCIBLY classified as: TV.\n");
+                }
+                else {
+                    print("INFO: Media file logically classified as: TV.\n");
+                }
                 # open the <episodedetails> nfo template
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateTvEpisode.nfo");
                 # TODO: open additional filehandle for the <tvshow> nfo template
@@ -1609,9 +1681,13 @@ if(@ARGV) {
             if($mediaType =~ m/\AFILM\Z/) {
                 $mediaFileDestinationDirectory = $destinationDir . $destinationSubdirFilm . $newFilenameComplete . '/';
             }
-            elsif($mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) { # Ultimiately MUSIC - or rather RADIO and PODCASTS will follow the same directory structure as TV
+            elsif($mediaType =~ m/\ATV\Z/) { # Ultimiately MUSIC - or rather RADIO and PODCASTS will follow the same directory structure as TV
                 $mediaFileDestinationDirectory = $destinationDir . $destinationSubdirTv . $newNameShowName . '/' . $newNameSeriesName . '/' . $newFilenameComplete . '/';
                 $mediaFileSeriesAtworkDirectory = $destinationDir . $destinationSubdirTv . $newNameShowName . '/';
+            }
+            elsif($mediaType =~ m/\ARADIO\Z/) {
+                $mediaFileDestinationDirectory = $destinationDir . $destinationSubdirRadio . $newNameShowName . '/' . $newNameSeriesName . '/' . $newFilenameComplete . '/';
+                $mediaFileSeriesAtworkDirectory = $destinationDir . $destinationSubdirRadio . $newNameShowName . '/';
             }
             
             
@@ -1637,7 +1713,7 @@ if(@ARGV) {
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             # NFO - COMMON TO ALL MEDIA
-            # Copy any EXISTING, OLD Kodi nfo file from the source folder to the destination folder adding the suffix .old
+            # Copy any EXISTING, OLD Kodi nfo file from the source directory to the destination directory adding the suffix .old
             # iplayer-generated Kodi nfo files are old, obsolete and are not used in the creation of the new Kodi nfo files. 
             if(-f $mediaFileFullPathNoExtension . '.nfo') {
                 &$transfer($mediaFileFullPathNoExtension . '.nfo', $mediaFileDestinationDirectory . $newFilenameComplete . '.nfo.old');
@@ -1657,13 +1733,13 @@ if(@ARGV) {
             
             # MP4/M4A - COMMON TO ALL MEDIA
             # transfer the media file itself to the destination directory. No if -f check, existance already proven
-            if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
-                &$transfer($mediaFile, $mediaFileDestinationDirectory . $newFilenameComplete . '.mp4');
+            if($claForceTypeFilm == 1 || $claForceTypeTv == 1 || $mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
+                &$transfer($mediaFile, $mediaFileDestinationDirectory . $newFilenameComplete . $mediaFileExtension);
                 print("SUCCESS: Transferred the video file for the programme to the destination directory.\n");
 
             }
-            elsif($mediaType =~ m/\ARADIO\Z/) {
-                &$transfer($mediaFile, $mediaFileDestinationDirectory . $newFilenameComplete . '.m4a');
+            elsif($claForceTypeRadio == 1 || $mediaType =~ m/\ARADIO\Z/) {
+                &$transfer($mediaFile, $mediaFileDestinationDirectory . $newFilenameComplete . $mediaFileExtension);
                 print("SUCCESS: Transferred the audio file for the programme to the destination directory.\n");
             }
              
