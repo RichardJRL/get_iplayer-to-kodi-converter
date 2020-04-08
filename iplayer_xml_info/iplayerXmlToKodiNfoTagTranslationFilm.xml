@@ -1,0 +1,24 @@
+<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>
+<movie>
+    <title></title>                     #  <title>, <brand>, <name>, <longname>, <nameshort> DONE
+    <originaltitle></originaltitle>     
+    <userrating>0</userrating>
+    <outline></outline>                 # <descshort>, <desc>, <descmedium> DONE
+    <plot></plot>                       # <desclong>, <descmedium>, <desc>, <descshort> DONE
+    <tagline></tagline>
+    <runtime></runtime>                 # <duration>, <runtime> (with seconds to minutes conversion for <duration>) DONE
+    <mpaa></mpaa>
+    <uniqueid type=\"\" default=\"true\"></uniqueid>
+    <genre></genre>                     # <categories>, <category> DONE
+    <country></country>
+    <credits></credits>
+    <director></director>
+    <premiered></premiered>             # <firstbcastdate>, <firstbcast> DONE
+    <studio></studio>
+    <actor>
+        <name></name>
+        <role></role>
+        <order></order>
+        <thumb></thumb>
+    </actor>
+</movie>

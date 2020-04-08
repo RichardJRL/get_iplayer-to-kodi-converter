@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<program_meta_data xmlns="http://linuxcentre.net/xmlstuff/get_iplayer" revision="1">
+	<categories></categories>
+	<channel></channel>
+	<desc></desc>
+	<descmedium></descmedium>
+	<descshort></descshort>
+	<dir></dir>
+	<dldate></dldate>
+	<dltime></dltime>
+	<duration></duration>
+	<durations></durations>
+	<episode></episode>
+	<episodenum></episodenum>
+	<episodeshort></episodeshort>
+	<expiry></expiry>
+	<ext></ext>
+	<filename></filename>
+	<filepart></filepart>
+	<fileprefix></fileprefix>
+	<guidance></guidance>
+	<index></index>
+	<longname></longname>
+	<mode></mode>
+	<modes></modes>
+	<modesizes></modesizes>
+	<name></name>
+	<nameshort></nameshort>
+	<pid></pid>
+	<player></player>
+	<seriesnum></seriesnum>
+	<thumbfile></thumbfile>
+	<thumbnail></thumbnail>
+	<timeadded></timeadded>
+	<type></type>
+	<verpids></verpids>
+	<version></version>
+	<versions></versions>
+	<web></web>
+</program_meta_data>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<episodedetails>
+    <title></title>                                 # <episodeshort,> part of <episode> - split on '. ' save second part, part of <title> - split on ': ' save last part... DONE
+                                                    # One-offs may not have an <episodeshort> or <episode> name, and (maybe) array size 1 for split <title>, in this case fall back
+                                                    # on using <title> (all of it), <name>, <brand>, <longname> <nameshort>
+    <showtitle></showtitle>                         # (the name of the whole show) <brand>, <nameshort>,  part of <title>, part of <longname>, part of <name>, DONE
+    <userrating></userrating>
+    <plot></plot>                                   # <desclong>, <descmedium>, <desc>, <descshort> DONE
+    <runtime></runtime>                             # <duration>, <runtime> DONE (with seconds to minutes conversion for <duration>) DONE
+    <genre>                                         # <categories>, <category> (inherited from TvShow, IGNORED upon import) DONE ANYWAY
+    <uniqueid type="" default="true"></uniqueid>
+    <credits></credits>
+    <director></director>
+    <aired></aired>                                 # <firstbcastdate>, <firstbcast> DONE
+    <actor>
+        <name></name>
+        <role></role>
+        <order></order>
+        <thumb></thumb>
+    </actor>
+</episodedetails> 
