@@ -6,7 +6,7 @@ use autodie;
 use File::Basename;
 use File::Spec;
 use File::Copy;
-use File::Path;
+use File::Path qw(make_path);
 use Data::Dumper;
 use HTML::Entities;
 use LWP::Simple;
@@ -1618,7 +1618,7 @@ if(@ARGV) {
             print("INFO: Destination directory for the film is: $mediaFileDestinationDirectory\n");
             print("INFO: Complete filename for the film is: $newFilenameComplete\n");
             if(!-d $mediaFileDestinationDirectory) {
-                if(!File::Path->make_path($mediaFileDestinationDirectory)) {
+                if(!make_path($mediaFileDestinationDirectory)) {
                     print("ERROR: Unable to create destination directory for this film: $mediaFileDestinationDirectory\n");
                 }
             }
