@@ -6,6 +6,8 @@ The contents of this repository are licensed under the GNU General Public Licens
 ## Abstract
 This Perl program takes films, television and radio programmes downloaded by the get_iplayer utility from the BBC iPlayer website that have been saved with the default filename format of `<name>_-_<episode>_<pid>_<version>.ext` and renames and reorganises them in a way that that should make them more compatible with Kodi media centre.
 
+The program only works on media files of the default type downloaded by `get_iplayer`, namely `.mp4` video files for films and TV programmes and `.m4a` audio files for radio programmes.
+
 Note that names presented in angle brackets refer to the iPlayer XML tags from which the information is derived.
 
 The program requires `get_iplayer` to be installed on the system. If it is not found in `$PATH` then a custom path can be specified as a command line argument. The program will never use `get_iplayer` to download a media file, only metadata files. 

@@ -930,6 +930,11 @@ if(@ARGV) {
         print("ERROR: The --force-type command line argument must only be used once to specify a single media type of 'film', 'tv' or 'radio'.\n");
         $claErrors++;
     }
+    # check any custom destination subdirectories are not the same as each other
+    if($destinationSubdirFilm =~ m/\A$destinationSubdirTv\Z/ || $destinationSubdirFilm =~ m/\A$destinationSubdirRadio\Z/ || $destinationSubdirTv =~ m/\A$destinationSubdirRadio\Z/) {
+        print("ERROR: The destination directory subdirectories for each media type must all be named differently to each other.\n");
+        $claErrors++;
+    }
 
     # carry out initial processing of $claSource and $claDestination arrays
     foreach(@claSource) {
