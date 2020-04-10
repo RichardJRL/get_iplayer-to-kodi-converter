@@ -111,5 +111,8 @@ Do not attempt to use the program over a VPN due to the BBC's tendency to block 
 - `--subdir-films [directory name]` : Optional, default is 'radio'. Specifies a custom subdirectory name for radio programmes within the destination directory.
 
 ## Useful Links
-get_iplayer https://github.com/get-iplayer/get_iplayer
-Kodi media centre https://kodi.tv
+- get_iplayer https://github.com/get-iplayer/get_iplayer
+- Kodi media centre https://kodi.tv
+
+## Compatibility
+The program has been tested with perl 5, version 30, subversion 1 (v5.30.1) built for x86_64-linux-thread-multi on OpenSuSE Tumbleweed

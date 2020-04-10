@@ -980,6 +980,16 @@ if(@ARGV) {
             $claErrors++;
         }
     }
+    # check the destination directory is not the same as any of the source directories
+    if(@sourceDirs > 0) {
+        foreach(@sourceDirs) {
+            if($_ =~ m/\A$destinationDir\Z/) {
+                print("ERROR: Source directory cannot be the same as the destination directory.\n");
+                $claErrors++;
+            }
+        }
+    }
+
     if(defined($claGetIplayer)) {
         if(-x $claGetIplayer) {
             print("INFO: Valid executable file found at path specified in command line arguments for get_iplayer.\n");
