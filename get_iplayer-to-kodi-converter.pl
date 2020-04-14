@@ -1688,7 +1688,7 @@ if(@ARGV) {
             # Assemble the new Kodi compatible filename for films
             if($mediaType =~ m/\AFILM\Z/) {
                 if(defined($newNameYear)) {
-                    $newFilenameComplete .= ($separator . $_);
+                    $newFilenameComplete .= ($separator . $newNameYear);
                 }
             }
             
