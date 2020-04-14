@@ -1429,7 +1429,7 @@ if(@ARGV) {
                     if(defined($mediaFileRuntime)) {
                         if($mediaFileRuntime != 0) {
                             setMetadataSingle(\$kodiNfoString, 'runtime', $mediaFileRuntime);
-                            print("INFO: Media file runtime is " . $mediaFileDuration . "minutes.\n");
+                            print("INFO: Media file runtime is " . $mediaFileDuration . " minutes.\n");
                         }
                     }
                     # No else, as this value is overwritten in the nfo file with the exact runtime obtained from the media file itself when the file is first played in Kodi
@@ -1537,7 +1537,7 @@ if(@ARGV) {
                                 $seriesNumber = '0' . $seriesNumber;
                             }
                             $newNameSeriesName = 'Series ' . $seriesNumber . '_' . $newNameSeriesName;
-                            print("INFO: Added a standard series name prefix to this uniquely nameds series \'$newNameSeriesName\'.\n");
+                            print("INFO: Added a standard series name prefix to this uniquely named series \'$newNameSeriesName\'.\n");
                         }
                     }
                 }
@@ -1683,12 +1683,21 @@ if(@ARGV) {
             if(defined($newNameYear)) {
                 $newNameYear = '(' . $newNameYear . ')';
             }
-            
-            # Assemble the new Kodi compatible filename
+
             $newFilenameComplete = $newNameShowName;
-            foreach($newNameYear, $newNameSeriesEpisodeCode, $newNameEpisodeName) {
-                if(defined($_)) {
+            # Assemble the new Kodi compatible filename for films
+            if($mediaType =~ m/\AFILM\Z/) {
+                if(defined($newNameYear)) {
                     $newFilenameComplete .= ($separator . $_);
+                }
+            }
+            
+            # Assemble the new Kodi compatible filename for TV and radio programmes
+            if($mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
+                foreach($newNameYear, $newNameSeriesEpisodeCode, $newNameEpisodeName) {
+                    if(defined($_)) {
+                        $newFilenameComplete .= ($separator . $_);
+                    }
                 }
             }
 
@@ -1706,8 +1715,8 @@ if(@ARGV) {
             }
             
             
-            print("INFO: Destination directory for the film is: $mediaFileDestinationDirectory\n");
-            print("INFO: Complete filename for the film is: $newFilenameComplete\n");
+            print("INFO: Destination directory for the media file is: $mediaFileDestinationDirectory\n");
+            print("INFO: Complete filename for the media file is: $newFilenameComplete\n");
             if(!-d $mediaFileDestinationDirectory) {
                 if(!make_path($mediaFileDestinationDirectory)) {
                     print("ERROR: Unable to create destination directory for this film: $mediaFileDestinationDirectory\n");
