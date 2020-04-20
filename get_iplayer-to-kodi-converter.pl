@@ -714,7 +714,7 @@ sub openMetadataFile {
         $xmlDocumentString = HTML::Entities::decode_entities($xmlDocumentString);
         # And convert back the ampersands that trip-up the XML parser
         $xmlDocumentString =~ s/&/&amp;/g;
-        # TODO: Replace &amp; with ampersands once finished creating the nfo files?
+        # TODO: Replace &amp; with ampersands once finished creating the nfo files? No? They are still XML files...
         print("SUCCESS: Subroutine openMetadataFile: Returning contents of XML metadata file $file\n");
         return $xmlDocumentString;  
     }
@@ -1647,6 +1647,7 @@ if(@ARGV) {
 
             # Change empty XML tags from <tag/> to <tag></tag> to satisfy Kodi (even though </tag> is still technically valid XML)
             $kodiNfoString =~ s/<(.*)\/>/<$1><\/$1>/g;
+            $kodiNfoString =~ s/<\/uniqueid .*>/<\/uniqueid>/g; # prevent <uniqueid> tag attributes from being copied to the closing </uniqueid> tag
             print("INFO: Created the following Kodi nfo metadata file for $mediaFileSourceFilenameNoExtension now called $newNameShowName.\n");
             # Print fully poplulated Kodi nfo metadata string and a final newline
             print("$kodiNfoString" . "\n");
@@ -1666,7 +1667,7 @@ if(@ARGV) {
             foreach($newNameShowName, $newNameSeriesName, $newNameEpisodeName, $newNameSeriesNumber, $newNameSeriesEpisodeCode, $newNameYear) {
                 if(defined($_)) {
                     $_ =~ s/[<>|\\]/-/g;
-                    $_ =~ s/["'`?*%,]//g;
+                    $_ =~ s/["'’`?*%,!]//g;
                     $_ =~ s/: /$separator-$separator/g;
                     $_ =~ s/\//$separator-$separator/g;
                     $_ =~ s/:/-/g;
