@@ -17,7 +17,7 @@ use XML::LibXML;
 # variables to hold command line arguments
 my $claRecurse = 0;     # Recurse into subdirectories of source directory. Boolean, 0=false, 1=true
 my $claBehaviour = 0;   # Sets whether the media files are copied (0) or moved (1) from the source directory to the destination directory
-my $claGetMissing = 1;  # Sets whether the program attempts to download (0 = no, 1 = yes) non-essential associated metadata files using get_iplayer (cue, tracks.txt, credits) 
+my $claGetMissing = 1;  # Sets whether the program attempts to download (0 = no, 1 = yes) non-essential associated metadata files using get_iplayer (cue, tracks.txt, credits.txt) 
 my $claForceTypeFilm = 0;    # Force conversion of files according to Film conversion rules
 my $claForceTypeTv = 0;      # Force conversion of files according to TV programme conversion rules
 my $claForceTypeRadio = 0;   # Force conversion of files according to Radio conversion rules

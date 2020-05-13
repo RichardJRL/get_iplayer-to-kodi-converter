@@ -103,6 +103,7 @@ Do not attempt to use the program over a VPN due to the BBC's tendency to block 
 - The following command line arguments can optionally be added to adjust the functioning of this program:
 - `--behaviour [copy|move]` : Optional, default is copy. Specifies whether media files are copied or moved to the destination directory.
 - `--recurse` : Optional. When specified, the program will recurse in to subdirectories of the source directory to search for media files.
+- `--download-missing-metadata [yes|no]` : Optional, default is yes. Specifies whether get_iplayer will be used to try to download missing cue, tracks.txt and credits.txt metadata files.
 - `--force-type [film|tv|radio]` : Optional. Forces the program to process all media files according to 'film', 'tv' or 'radio' rules, regardless of their actual type.
 - `--get-iplayer [PATH]` : Optional. Allows the user to provide the location of get_iplayer if it is installed outside of the system's \$PATH.
 - `--separator ['_'|'.'|' ']` : Optional, default is underscore `'_'`. Specifies the separator character used between words in the destination file and directory names. The choises are undersore `'_'`, period `'.'` and whitespace `' '`.
