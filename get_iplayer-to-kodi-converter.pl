@@ -17,6 +17,7 @@ use XML::LibXML;
 # variables to hold command line arguments
 my $claRecurse = 0;     # Recurse into subdirectories of source directory. Boolean, 0=false, 1=true
 my $claBehaviour = 0;   # Sets whether the media files are copied (0) or moved (1) from the source directory to the destination directory
+my $claGetMissing = 1;  # Sets whether the program attempts to download (0 = no, 1 = yes) non-essential associated metadata files using get_iplayer (cue, tracks.txt, credits) 
 my $claForceTypeFilm = 0;    # Force conversion of files according to Film conversion rules
 my $claForceTypeTv = 0;      # Force conversion of files according to TV programme conversion rules
 my $claForceTypeRadio = 0;   # Force conversion of files according to Radio conversion rules
@@ -788,6 +789,22 @@ if(@ARGV) {
                 }
             }  
         }
+        elsif($currentArg =~ m/\A--download-missing-metadata\Z/) {
+            $currentArg = shift(@ARGV);
+            if(defined($currentArg)) {
+                $currentArg = lc($currentArg);
+                if($currentArg =~ m/\Ayes\Z/) {
+                    $claGetMissing = 1;
+                }
+                elsif($currentArg =~ m/\Ano\Z/) {
+                    $claGetMissing = 0;
+                }
+                else {
+                    print("ERROR: --download-missing-metadata command line argument requires either 'yes' or 'no' to be specified.\n");
+                    $claInvalid++;
+                }
+            }
+        }
         elsif($currentArg =~ m/\A--source/) {
             while($currentArg = shift(@ARGV)) {
                 if($currentArg !~ m/\A--/) {
@@ -1421,7 +1438,7 @@ if(@ARGV) {
                 if(defined($mediaFileDuration)) {
                     if($mediaFileDuration != 0) {
                         setMetadataSingle(\$kodiNfoString, 'runtime', int($mediaFileDuration/60));
-                    print("INFO: Media file runtime is " . $mediaFileDuration/60 . "minutes.\n");
+                    print("INFO: Media file runtime is " . $mediaFileDuration/60 . " minutes.\n");
                     }   
                 }
                 else {
@@ -1871,14 +1888,20 @@ if(@ARGV) {
                 print("SUCCESS: Found an existing credits text file for the programme and transferred it to the destination directory.\n");
             }
             else {
-                print("INFO: No existing credits text file found for the programme.\n");
-                my ($newCreditsTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'credits.txt');
-                if(defined($newCreditsTxt) && -f $newCreditsTxt) {
-                    print("SUCCESS: Downloaded a new programme credits text file to the destination directory.\n");
+                if($claGetMissing == 1) {
+                        print("INFO: No existing credits text file found for the programme.\n");
+                    my ($newCreditsTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'credits.txt');
+                    if(defined($newCreditsTxt) && -f $newCreditsTxt) {
+                        print("SUCCESS: Downloaded a new programme credits text file to the destination directory.\n");
+                    }
+                    else {
+                        print("WARNING: Unable to download a new programme credits text file to the destination directory.\n");
+                    }
                 }
                 else {
-                    print("WARNING: Unable to download a new programme credits text file to the destination directory.\n");
+                    print("INFO: Deliberately not downloading credits text file found for the programme.\n");
                 }
+                
             }
 
             # CUE - EXCLUSIVE TO RADIO
@@ -1890,13 +1913,18 @@ if(@ARGV) {
                     print("SUCCESS: Found an existing music cue sheet file for the programme and transferred it to the destination directory.\n");
                 }
                 else {
-                    print("INFO: No existing music cue sheet file found for the programme.\n");
-                    my ($newCue) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'cue');
-                    if(defined($newCue) && -f $newCue) {
-                        print("SUCCESS: Downloaded a new programme music cue sheet file to the destination directory.\n");
+                    if($claGetMissing == 1) {
+                        print("INFO: No existing music cue sheet file found for the programme.\n");
+                        my ($newCue) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'cue');
+                        if(defined($newCue) && -f $newCue) {
+                            print("SUCCESS: Downloaded a new programme music cue sheet file to the destination directory.\n");
+                        }
+                        else {
+                            print("WARNING: Unable to download a new programme music cue sheet file to the destination directory.\n");
+                        }
                     }
                     else {
-                        print("WARNING: Unable to download a new programme music cue sheet file to the destination directory.\n");
+                        print("INFO: Deliberately not downloading music cue sheet file found for the programme.\n");
                     }
                 }
             }
@@ -1909,14 +1937,20 @@ if(@ARGV) {
                 print("SUCCESS: Found an existing music track list file for the programme and transferred it to the destination directory.\n");
             }
             else {
-                print("INFO: No existing music track list file found for the programme.\n");
-                my ($newTracksTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'tracks.txt');
-                if(defined($newTracksTxt) && -f $newTracksTxt) {
-                    print("SUCCESS: Downloaded a new programme music track list file to the destination directory.\n");
+                if($claGetMissing == 1) {
+                    print("INFO: No existing music track list file found for the programme.\n");
+                    my ($newTracksTxt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'tracks.txt');
+                    if(defined($newTracksTxt) && -f $newTracksTxt) {
+                        print("SUCCESS: Downloaded a new programme music track list file to the destination directory.\n");
+                    }
+                    else {
+                        print("WARNING: Unable to download a new programme music track list file to the destination directory.\n");
+                    }
                 }
                 else {
-                    print("WARNING: Unable to download a new programme music track list file to the destination directory.\n");
+                    print("INFO: Deliberately not downloading music track list file found for the programme.\n");
                 }
+                
             }
         }
         else { 
