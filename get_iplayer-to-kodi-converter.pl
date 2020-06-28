@@ -1280,14 +1280,17 @@ if(@ARGV) {
                 print("INFO: Using TV type rules to process the audio file $mediaFileSourceFilename (This is NOT a mistake)\n");
                 print("INFO: Creating <epidsodedetails> type Kodi compatible nfo metadata file.\n");
             }
-            elsif(($claForceTypeFilm == 1) || ($mediaFileSourceFilename =~ m/\.mp4\Z/ && $iplayerTagCategories =~ m/[Ff]ilm/)) {
+            elsif($claForceTypeFilm == 1) {
                 $mediaType = 'FILM';
-                if($claForceTypeFilm == 1) {
-                    print("INFO: Media file FORCIBLY classified as: FILM.\n");
-                }
-                else {
-                    print("INFO: Media file logically classified as: FILM.\n");
-                }
+                print("INFO: Media file FORCIBLY classified as: FILM.\n");
+                # open the <movie> nfo template
+                open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateFilm.nfo");
+                print("INFO: Using FILM type rules to process the video file $mediaFileSourceFilename\n");
+                print("INFO: Creating <movie> type Kodi compatible nfo metadata file.\n");
+            }
+            elsif($mediaFileSourceFilename =~ m/\.mp4\Z/ && $iplayerTagCategories =~ m/[Ff]ilm/) {
+                $mediaType = 'FILM';
+                print("INFO: Media file logically classified as: FILM.\n");
                 # open the <movie> nfo template
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateFilm.nfo");
                 print("INFO: Using FILM type rules to process the video file $mediaFileSourceFilename\n");
