@@ -1307,7 +1307,6 @@ if(@ARGV) {
             }
             elsif($mediaFileSourceFilename =~ m/\.mp4\Z/) {
                 $mediaType = 'TV';
-                if($claForceTypeTv == 1) {
                 print("INFO: Media file logically classified as: TV.\n");
                 # open the <episodedetails> nfo template
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateTvEpisode.nfo");
