@@ -1288,6 +1288,15 @@ if(@ARGV) {
                 print("INFO: Using FILM type rules to process the video file $mediaFileSourceFilename\n");
                 print("INFO: Creating <movie> type Kodi compatible nfo metadata file.\n");
             }
+            elsif($claForceTypeTv == 1) {
+                $mediaType = 'TV';
+                print("INFO: Media file FORCIBLY classified as: TV.\n");
+                # open the <episodedetails> nfo template
+                open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateTvEpisode.nfo");
+                # TODO: open additional filehandle for the <tvshow> nfo template
+                print("INFO: Using TV type rules to process the video file $mediaFileSourceFilename\n");
+                print("INFO: Creating <epidsodedetails> type Kodi compatible nfo metadata file.\n");
+            }
             elsif($mediaFileSourceFilename =~ m/\.mp4\Z/ && $iplayerTagCategories =~ m/[Ff]ilm/) {
                 $mediaType = 'FILM';
                 print("INFO: Media file logically classified as: FILM.\n");
@@ -1296,14 +1305,10 @@ if(@ARGV) {
                 print("INFO: Using FILM type rules to process the video file $mediaFileSourceFilename\n");
                 print("INFO: Creating <movie> type Kodi compatible nfo metadata file.\n");
             }
-            elsif(($claForceTypeTv == 1) || ($mediaFileSourceFilename =~ m/\.mp4\Z/)) {
+            elsif($mediaFileSourceFilename =~ m/\.mp4\Z/) {
                 $mediaType = 'TV';
                 if($claForceTypeTv == 1) {
-                    print("INFO: Media file FORCIBLY classified as: TV.\n");
-                }
-                else {
-                    print("INFO: Media file logically classified as: TV.\n");
-                }
+                print("INFO: Media file logically classified as: TV.\n");
                 # open the <episodedetails> nfo template
                 open($nfofh, '<:encoding(UTF-8)', "$programDirectoryFullPath/kodi_metadata_templates/kodiNfoTemplateTvEpisode.nfo");
                 # TODO: open additional filehandle for the <tvshow> nfo template
