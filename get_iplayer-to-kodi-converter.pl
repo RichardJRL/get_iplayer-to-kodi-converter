@@ -21,7 +21,8 @@ my $claGetMissing = 1;  # Sets whether the program attempts to download (0 = no,
 my $claForceTypeFilm = 0;    # Force conversion of files according to Film conversion rules
 my $claForceTypeTv = 0;      # Force conversion of files according to TV programme conversion rules
 my $claForceTypeRadio = 0;   # Force conversion of files according to Radio conversion rules
-my $claBackupJpgNfo = 0;  # Sets whether the program creates backup copies (0 = no, 1 = yes) of BBC sourced jpg and nfo files in case Jellyfin overwrites them
+my $claBackupJpgNfo = 0;     # Sets whether the program creates backup copies (0 = no, 1 = yes) of BBC sourced jpg and nfo files in case Jellyfin overwrites them
+my $claSubtitleLanguage;     # Sets an optional language code for the srt subtitle metadata file before the srt file extension
 # TODO: implement command line arguments for custom subdirectory names
 my @claSource;          # Array of File::Spec objects representing source files or directories to search for media to convert
 my @claDestination;     # File::Spec object for the base destination directory of converted media
@@ -733,6 +734,7 @@ sub printUsageInformation {
     print("--force-type [film|tv|radio] : Optional. Forces the program to process all media files according to 'film', 'tv' or 'radio' rules, regardless of their actual type.\n");
     print("--download-missing-metadata [yes|no]: Optional. Forces the program to download missing metadata files.\n");
     print("--backup-jpg-and-nfo : Optional. Creates backup copies of jpg and nfo metadata files with the extension 'bbc' in case Jellyfin overwrites the originals.\n");
+    print("--subtitle-language-code ['english'|'eng'|'en'|]: Optional. Specifies that the subtitle metadata file should include the selected language code before the .srt file extension. The first letter may be capitalised.\n");
     print("--get-iplayer [PATH] : Optional. Allows the user to provide the location of get_iplayer if it is installed outside of the system's \$PATH.\n");
     print("--separator ['_'|'.'|' '] : Optional, default is underscore '_'. Specifies the separator character used between words in the destination file and directory names. The choices are undersore '_', period '.' and whitespace ' '.\n");
     print("--subdir-films [subdirectory_name] : Optional, default is 'films'. Specifies a custom subdirectory name for films within the destination directory.\n");
@@ -802,6 +804,22 @@ if(@ARGV) {
                     print("ERROR: --backup-jpg-and-nfo command line argument requires either 'yes' or 'no' to be specified.\n");
                     $claInvalid++;
                 }
+            }
+        }
+        elsif($currentArg =~ m/\A--subtitle-language-code/) {
+            $currentArg = shift(@ARGV);
+            if(defined($currentArg)) {
+                if($currentArg =~ m/\A[Ee]n(g(lish)?)?\Z/) {
+                    $claSubtitleLanguage = '.' . $currentArg;
+                }
+                else {
+                    print("ERROR: --subtitle-language-code command line argument requires a valid language code to be specified. Choose one from 'english', 'eng' or 'en'. The first letter may be capitalised.\n");
+                    $claInvalid++;
+                }
+            }
+            else {
+                print("ERROR: --subtitle-language-code command line argument requires a valid language code to be specified. Choose one from 'english', 'eng' or 'en'. The first letter may be capitalised.\n");
+                $claInvalid++;
             }
         }
         elsif($currentArg =~ m/\A--download-missing-metadata\Z/) {
@@ -1925,7 +1943,12 @@ if(@ARGV) {
             # NB: Not using the dotted, first-letter-capitalised language pre-suffix e.g. foo_S01E01.English.srt, foo_S01E01.French.srt
             if($mediaType =~ m/\AFILM\Z/ || $mediaType =~ m/\ATV\Z/) {
                 if(-f $mediaFileFullPathNoExtension . '.srt') {
-                    &$transfer($mediaFileFullPathNoExtension . '.srt', $mediaFileDestinationDirectory . $newFilenameComplete . '.srt');
+                    if(defined($claSubtitleLanguage)) {
+                        &$transfer($mediaFileFullPathNoExtension . '.srt', $mediaFileDestinationDirectory . $newFilenameComplete . $claSubtitleLanguage . '.srt');
+                    }
+                    else {
+                        &$transfer($mediaFileFullPathNoExtension . '.srt', $mediaFileDestinationDirectory . $newFilenameComplete . '.srt');
+                    }
                     print("SUCCESS: Found an existing subtitles file for the programme and transferred it to the destination directory.\n");
                 }
                 else {
@@ -1933,6 +1956,9 @@ if(@ARGV) {
                     my ($newSrt) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete, $mediaFilePid, $mediaFileVersion, 'srt');
                     if(defined($newSrt) && -f $newSrt) {
                         print("SUCCESS: Downloaded a new subtitles file to the destination directory.\n");
+                        if(defined($claSubtitleLanguage)) {
+                            move($mediaFileDestinationDirectory . $newFilenameComplete . '.srt', $mediaFileDestinationDirectory . $newFilenameComplete . $claSubtitleLanguage . '.srt');
+                        }
                     }
                     else {
                         print("WARNING: Unable to download a new subtitles file to the destination directory.\n");
