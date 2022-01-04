@@ -21,6 +21,7 @@ my $claGetMissing = 1;  # Sets whether the program attempts to download (0 = no,
 my $claForceTypeFilm = 0;    # Force conversion of files according to Film conversion rules
 my $claForceTypeTv = 0;      # Force conversion of files according to TV programme conversion rules
 my $claForceTypeRadio = 0;   # Force conversion of files according to Radio conversion rules
+my $claBackupJpgNfo = 0;  # Sets whether the program creates backup copies (0 = no, 1 = yes) of BBC sourced jpg and nfo files in case Jellyfin overwrites them
 # TODO: implement command line arguments for custom subdirectory names
 my @claSource;          # Array of File::Spec objects representing source files or directories to search for media to convert
 my @claDestination;     # File::Spec object for the base destination directory of converted media
@@ -571,25 +572,19 @@ sub transferMetadataCategories {
 # $_[2] = media file PID
 # $_[3] = media file version
 # $_[4] = an array of file extension(s)/type(s), one or more of:
-#         ('xml', 'srt', 'jpg', 'series.jpg', 'square.jpg', 'tracks.txt', 'cue', 'credits.txt')
+#         ('xml', 'srt', 'jpg', 'series.jpg', 'thumb.jpg', 'tracks.txt', 'cue', 'credits.txt')
 # Return Value:
 # @metadataFileFullPath = Full path(s) of the metadata file(s), if downloaded, or undef if none. 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub downloadMetadataFile {
-    my ($savePath, $filenameNoPathNoExtension, $pid, $version, @fileExtensions) = @_;
+    my ($savePath, $filenameNoPathNoExtension, $pid, $version, $fileExtension) = @_;
 
-    my @filesDownloaded;
+    my $fileDownloaded;
 
-    my $prettyMetadataFilesList = join(',', @fileExtensions);
+    print("INFO: Subroutine downloadMetadataFile: Attempting to download missing $fileExtension metadata file using get_iplayer.\n");
 
-    print("INFO: Subroutine downloadMetadataFile: Attempting to download missing $prettyMetadataFilesList metadata files using get_iplayer.\n");
-
-    if(!defined($savePath) || !defined($filenameNoPathNoExtension) || !defined($pid) || !defined($version)) {
+    if(!defined($savePath) || !defined($filenameNoPathNoExtension) || !defined($pid) || !defined($version) || !defined($fileExtension)) {
         print("ERROR: One or more essential arguments to the subroutine donwloadMetadataFile are undefined\n");
-        return undef;
-    }
-    if(@fileExtensions == 0) {
-        print("ERROR: Subroutine downloadMetadataFile: Empty array of metadata files give as an argument to the subroutine downloadMetadataFile.\n");
         return undef;
     }
     if(!-d $savePath) {
@@ -604,72 +599,74 @@ sub downloadMetadataFile {
     # NB: each jpg - standard, series and square will be downloaded with the same filename and overwrite each other.
     # So series and square jpg files will be handled separately by their own get_iplayer commands whereas 
     # the other metadata file downloads can be grouped into a single get_iplayer command.
-    foreach(@fileExtensions) {
-        if($_ =~ m/\Axml\Z/) {
-            $get_iplayerMetadataOptions .= '--metadata-only ';
-            $filesToDownload++;
-        }
-        elsif($_ =~ m/\Asrt\Z/) {
-            $get_iplayerMetadataOptions .= '--subtitles-only ';
-            $filesToDownload++;
-        }
-        elsif($_ =~ m/\Ajpg\Z/) {
-            $get_iplayerMetadataOptions .= '--thumbnail-only --thumbnail-size=1920 ';
-            $filesToDownload++;
-        }
-        elsif($_ =~ m/\Aseries\.jpg\Z/) {
-            # Special handling required to avoid overwriting other jpg files
-            my $jpgOptions = '--thumbnail-only --thumbnail-series --thumbnail-size=1920';
-            my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
-            print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type series.jpg to $savePath\n");
-            print("INFO: Subroutine downloadMetadataFile: Running command: $command\n");
-            `$command`;
-        }
-        elsif($_ =~ m/\Asquare\.jpg\Z/) {
-            # Special handling required to avoid overwriting other jpg files
-            my $jpgOptions = '--thumbnail-only --thumbnail-square --thumbnail-size=1920';
-            my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
-            print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type square.jpg to $savePath\n");
-            print("INFO: Subroutine downloadMetadataFile: Running command: $command\n");
-            `$command`;
-        }
-        elsif($_ =~ m/\Atracks.txt\Z/) {
-            $get_iplayerMetadataOptions .= '--tracklist-only ';
-            $filesToDownload++;
-        }
-        elsif($_ =~ m/\Acue\Z/) {
-            $get_iplayerMetadataOptions .= '--cusheet-only ';
-            $filesToDownload++;
-        }
-        elsif($_ =~ m/\Acredits.txt\Z/) {
-            $get_iplayerMetadataOptions .= '--credits-only ';
-            $filesToDownload++;
-        }
-        else {
-            print("ERROR: Subroutine downloadMetadataFile: Unrecognised metadata file type '$_'.\n");
-            return undef;
-        }
+
+    if($fileExtension =~ m/\Axml\Z/) {
+        $get_iplayerMetadataOptions .= '--metadata-only ';
+        $filesToDownload++;
+    }
+    elsif($fileExtension =~ m/\Asrt\Z/) {
+        $get_iplayerMetadataOptions .= '--subtitles-only ';
+        $filesToDownload++;
+    }
+    elsif($fileExtension =~ m/\Ajpg\Z/) {
+        $get_iplayerMetadataOptions .= '--thumbnail-only --thumbnail-size=1920 ';
+        $filesToDownload++;
+    }
+    elsif($fileExtension =~ m/\Aseries\.jpg\Z/) {
+        # Special handling required to avoid overwriting other jpg files
+        my $jpgOptions = '--thumbnail-only --thumbnail-series --thumbnail-size=1920';
+        my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
+        print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type series.jpg to $savePath\n");
+        print("INFO: Subroutine downloadMetadataFile: Running command: $command\n");
+        `$command`;
+    }
+    elsif($fileExtension =~ m/\Athumb\.jpg\Z/) {
+        # Special handling required to avoid overwriting other jpg files
+        my $jpgOptions = '--thumbnail-only --thumbnail-square --thumbnail-size=1920';
+        my $command = "$get_iplayer --get $jpgOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
+        print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type square.jpg to $savePath\n");
+        print("INFO: Subroutine downloadMetadataFile: Running command: $command\n");
+        `$command`;
+    }
+    elsif($fileExtension =~ m/\Atracks.txt\Z/) {
+        $get_iplayerMetadataOptions .= '--tracklist-only ';
+        $filesToDownload++;
+    }
+    elsif($fileExtension =~ m/\Acue\Z/) {
+        $get_iplayerMetadataOptions .= '--cusheet-only ';
+        $filesToDownload++;
+    }
+    elsif($fileExtension =~ m/\Acredits.txt\Z/) {
+        $get_iplayerMetadataOptions .= '--credits-only ';
+        $filesToDownload++;
+    }
+    else {
+        print("ERROR: Subroutine downloadMetadataFile: Unrecognised metadata file type '$fileExtension'.\n");
+        return undef;
     }
 
     if($filesToDownload != 0) {
-        my $prettyStringOfMetadataFiles = join(', ', @fileExtensions);
         my $command = "$get_iplayer --get $get_iplayerMetadataOptions --pid=$pid --versions=\"$version\" --output-tv=\"$savePath\" --output-radio=\"$savePath\" --file-prefix=\"$filenameNoPathNoExtension\"";
-        print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type $prettyStringOfMetadataFiles to $savePath\n");
+        print("INFO: Subroutine downloadMetadataFile: Attempting to download missing metadata file(s) of type $fileExtension to $savePath\n");
         print("INFO: Subroutine downloadMetadataFile: Running command: $command\n");
         `$command`;
     }
 
-    foreach(@fileExtensions) {
-        my $fileExpectedLocation = $savePath . '/' . $filenameNoPathNoExtension . '.' . $_;
-        if(-f $fileExpectedLocation) {
-            push(@filesDownloaded, $fileExpectedLocation);
-            print("INFO: Subroutine downloadMetadataFile: Downloaded metadata file " . $filenameNoPathNoExtension . '.' . $_ . "\n");
-        }
-        else {
-            print("WARNING: Subroutine downloadMetadataFile: Unable to download metadata file " . $filenameNoPathNoExtension . '.' . $_ . "\n");
-        }
-        return @filesDownloaded;
+    if($fileExtension =~ m/\Athumb\.jpg\Z/ || $fileExtension =~ m/\Aseries\.jpg\Z/){
+        # A bodge to correct thumb and series metadata file filenames.
+        $fileExtension = 'jpg';
     }
+    my $fileExpectedLocation = $savePath . '/' . $filenameNoPathNoExtension . '.' . $fileExtension;
+    print("DEBUG: Subroutine downloadMetadataFile: Value of the variable fileExpectedLocation is: $fileExpectedLocation\n");
+    if(-f $fileExpectedLocation) {
+        print("DEBUG: Subroutine downloadMetadataFile: Downloaded file exists: $fileExpectedLocation\n");
+        $fileDownloaded = $fileExpectedLocation;
+        print("INFO: Subroutine downloadMetadataFile: Downloaded metadata file " . $filenameNoPathNoExtension . '.' . $fileExtension . "\n");
+    }
+    else {
+        print("WARNING: Subroutine downloadMetadataFile: Unable to download metadata file " . $filenameNoPathNoExtension . '.' . $fileExtension . "\n");
+    }
+    return $fileDownloaded;
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -734,8 +731,10 @@ sub printUsageInformation {
     print("--behaviour [copy|move]: Optional, default is copy. Specifies whether media files are copied or moved to the destination directory.\n");
     print("--recurse : Optional. When specified, the program will recurse in to subdirectories of the source directory to search for media files.\n");
     print("--force-type [film|tv|radio] : Optional. Forces the program to process all media files according to 'film', 'tv' or 'radio' rules, regardless of their actual type.\n");
+    print("--download-missing-metadata [yes|no]: Optional. Forces the program to download missing metadata files.\n");
+    print("--backup-jpg-and-nfo : Optional. Creates backup copies of jpg and nfo metadata files with the extension 'bbc' in case Jellyfin overwrites the originals.\n");
     print("--get-iplayer [PATH] : Optional. Allows the user to provide the location of get_iplayer if it is installed outside of the system's \$PATH.\n");
-    print("--separator ['_'|'.'|' '] : Optional, default is underscore '_'. Specifies the separator character used between words in the destination file and directory names. The choises are undersore '_', period '.' and whitespace ' '.\n");
+    print("--separator ['_'|'.'|' '] : Optional, default is underscore '_'. Specifies the separator character used between words in the destination file and directory names. The choices are undersore '_', period '.' and whitespace ' '.\n");
     print("--subdir-films [subdirectory_name] : Optional, default is 'films'. Specifies a custom subdirectory name for films within the destination directory.\n");
     print("--subdir-tv [subdirectory_name] : Optional, default is 'tv'. Specifies a custom subdirectory name for tv programmes within the destination directory.\n");
     print("--subdir-films [directory name] : Optional, default is 'radio'. Specifies a custom subdirectory name for radio programmes within the destination directory.\n");
@@ -788,6 +787,22 @@ if(@ARGV) {
                     $claInvalid++;
                 }
             }  
+        }
+        elsif($currentArg =~ m/\A--backup-jpg-and-nfo/) {
+            $currentArg = shift(@ARGV);
+            if(defined($currentArg)) {
+                $currentArg = lc($currentArg);
+                if($currentArg =~ m/\Ayes\Z/) {
+                    $claBackupJpgNfo = 1;
+                }
+                elsif($currentArg =~ m/\Ano\Z/) {
+                    $claBackupJpgNfo = 0;
+                }
+                else {
+                    print("ERROR: --backup-jpg-and-nfo command line argument requires either 'yes' or 'no' to be specified.\n");
+                    $claInvalid++;
+                }
+            }
         }
         elsif($currentArg =~ m/\A--download-missing-metadata\Z/) {
             $currentArg = shift(@ARGV);
@@ -1613,22 +1628,24 @@ if(@ARGV) {
 
             # Kodi: <premiered>
             # NB: This will be wrong for films, but there's not much that can be done unless a more correct firstBroadcastYear is found above 
-            # and bodged in place of the year portion of the date here, leaving the month and day incorrect? TODO: Do it?
-            if($mediaType =~ m/\AFILM\Z/) {
-                print("INFO: Attempting to find content for the Kodi <premiered> XML tag.\n");
-                my @iplayerFirstBroadcastTagCandidates = ('firstbcastdate');
-                my $firstBroadcastDate = transferMetadata(\$iplayerXmlString, \@iplayerFirstBroadcastTagCandidates, \$kodiNfoString, 'premiered');
-                if(!defined($firstBroadcastDate)) {
-                    # Tag samples:
-                    # <firstbcast>2009-09-18T21:50:00+01:00</firstbcast>
-                    # <firstbcastdate>2009-09-18</firstbcastdate>
-                    if(defined($firstBroadcastDate = getMetadata(\$iplayerXmlString, 'firstbcast'))) {
-                        if(defined(($firstBroadcastDate) = split('T', $firstBroadcastDate))) {
-                            setMetadataSingle(\$kodiNfoString, 'premiered', $firstBroadcastDate);
-                        }
-                    }
-                }
-            }
+            # and bodged in place of the year portion of the date here, leaving the month and day incorrect?
+            # TODO: Do it or disable it?
+            # DECIDED: Disabled due to a majority of incorrect dates being entered over a period of two years of use.
+            # if($mediaType =~ m/\AFILM\Z/) {
+            #     print("INFO: Attempting to find content for the Kodi <premiered> XML tag.\n");
+            #     my @iplayerFirstBroadcastTagCandidates = ('firstbcastdate');
+            #     my $firstBroadcastDate = transferMetadata(\$iplayerXmlString, \@iplayerFirstBroadcastTagCandidates, \$kodiNfoString, 'premiered');
+            #     if(!defined($firstBroadcastDate)) {
+            #         # Tag samples:
+            #         # <firstbcast>2009-09-18T21:50:00+01:00</firstbcast>
+            #         # <firstbcastdate>2009-09-18</firstbcastdate>
+            #         if(defined($firstBroadcastDate = getMetadata(\$iplayerXmlString, 'firstbcast'))) {
+            #             if(defined(($firstBroadcastDate) = split('T', $firstBroadcastDate))) {
+            #                 setMetadataSingle(\$kodiNfoString, 'premiered', $firstBroadcastDate);
+            #             }
+            #         }
+            #     }
+            # }
 
             # Kodi: <aired>
             if($mediaType =~ m/\ATV\Z/ || $mediaType =~ m/\ARADIO\Z/) {
@@ -1757,15 +1774,21 @@ if(@ARGV) {
             print($destinationfofh $kodiNfoString);
             close($destinationfofh);
 
+            # Create backup copy of the Kodi nfo file in the destination directory, if required
+            if($claBackupJpgNfo == 1) {
+                print("INFO: Creating a backup copy of the nfo metadata file in the destination directory with the additional extension '.bbc'.\n");
+                copy($mediaFileDestinationDirectory . $newFilenameComplete . '.nfo', $mediaFileDestinationDirectory . $newFilenameComplete . '.nfo.bbc');
+            }
+
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # START OF THE COMMON SECTION DEALING WITH METADATA FILES
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
             # NFO - COMMON TO ALL MEDIA
-            # Copy any EXISTING, OLD Kodi nfo file from the source directory to the destination directory adding the suffix .old
+            # Copy any EXISTING, OLD Kodi nfo file from the source directory to the destination directory adding the suffix .old.bbc
             # iplayer-generated Kodi nfo files are old, obsolete and are not used in the creation of the new Kodi nfo files. 
             if(-f $mediaFileFullPathNoExtension . '.nfo') {
-                &$transfer($mediaFileFullPathNoExtension . '.nfo', $mediaFileDestinationDirectory . $newFilenameComplete . '.nfo.old');
+                &$transfer($mediaFileFullPathNoExtension . '.nfo', $mediaFileDestinationDirectory . $newFilenameComplete . '.nfo.old.bbc');
                 print("SUCCESS: Found an existing Kodi nfo metadata file for the programme and transferred it to the destination directory.\n");
             } # There is deliberately no 'else' clause for nfo files here.
 
@@ -1817,11 +1840,21 @@ if(@ARGV) {
                     &$transfer($mediaFileFullPathNoExtension . '.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-fanart.jpg');
                     print("SUCCESS: Transferred jpg image file to destination directory as a fanart image.\n");
                 }
+                # Create backup copy if required
+                if($claBackupJpgNfo == 1) {
+                    print("INFO: Creating a backup copy of the jpg metadata file in the destination directory with the additional extension '.bbc'.\n");
+                    copy($mediaFileDestinationDirectory . $newFilenameComplete . '-fanart.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-fanart.jpg.bbc');
+                }
             }
             else {
                 my ($newJpg) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete . '-fanart', $mediaFilePid, $mediaFileVersion, 'jpg');
                 if(defined($newJpg) && -f $newJpg) {
                     print("SUCCESS: Downloaded a new high resolution jpg image file to the destination directory as a fanart image.\n");
+                    # Create backup copy if required
+                    if($claBackupJpgNfo == 1) {
+                        print("INFO: Creating a backup copy of the jpg metadata file in the destination directory with the additional extension '.bbc'.\n");
+                        copy($mediaFileDestinationDirectory . $newFilenameComplete . '-fanart.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-fanart.jpg.bbc');
+                    }
                 }
             }
 
@@ -1834,11 +1867,21 @@ if(@ARGV) {
                     my $seriesArtworkFullPath = $mediaFileSeriesAtworkDirectory . $seriesArtworkFilename . '.jpg';
                     if(-f $seriesArtworkFullPath) {
                         print("INFO: A programme series jpg image file $seriesArtworkFilename.jpg already exists in the destination directory.\n");
+                        # Create backup copy if required
+                        if($claBackupJpgNfo == 1) {
+                            print("INFO: Creating a backup copy of the jpg metadata file in the destination directory with the additional extension '.bbc'.\n");
+                            copy($seriesArtworkFullPath, $seriesArtworkFullPath . '.bbc');
+                        }
                     }
                     else {
                         my ($newSeriesJpg) = downloadMetadataFile($mediaFileSeriesAtworkDirectory, $seriesArtworkFilename, $mediaFilePid, $mediaFileVersion, 'series.jpg');
                         if(defined($newSeriesJpg) && -f $newSeriesJpg) {
                             print("SUCCESS: Downloaded a new programme series jpg image file to the destination directory.\n");
+                            # Create backup copy if required
+                            if($claBackupJpgNfo == 1) {
+                                print("INFO: Creating a backup copy of the jpg metadata file in the destination directory with the additional extension '.bbc'.\n");
+                                copy($newSeriesJpg, $newSeriesJpg . '.bbc')
+                            }
                         }
                         else {
                             print("WARNING: Unable to download a new programme series jpg image file to the destination directory.\n");
@@ -1849,18 +1892,27 @@ if(@ARGV) {
 
             # SQUARE.JPG -EXCLUSIVE TO RADIO
             # Transfer *square* metadata jpg thumbnail image to the destination directory as 'thumb' image type
-            # None have been downloaded before...
-            # TODO: Untested
             if($mediaType =~ m /\ARADIO\Z/) {
                 if(-f $mediaFileFullPathNoExtension . '-thumb.jpg') {
                     &$transfer($mediaFileFullPathNoExtension . '-thumb.jpg', $mediaFileDestinationDirectory . $newFilenameComplete . '-thumb.jpg');
                     print("SUCCESS: Found an existing square jpg image file for the programme and transferred it to the destination directory.\n");
+                    # Create backup copy if required
+                    if($claBackupJpgNfo == 1) {
+                        print("INFO: Creating a backup copy of the square jpg metadata file in the destination directory with the additional extension '.bbc'.\n");
+                        copy($mediaFileFullPathNoExtension . '-thumb.jpg', $mediaFileFullPathNoExtension . '-thumb.jpg.bbc');
+                    }
                 }
                 else {
                     print("INFO: No existing square jpg image file found for the programme.\n");
-                    my ($newSquareJpg) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete . '-thumb', $mediaFilePid, $mediaFileVersion, 'square.jpg');
+                    my ($newSquareJpg) = downloadMetadataFile($mediaFileDestinationDirectory, $newFilenameComplete . '-thumb', $mediaFilePid, $mediaFileVersion, 'thumb.jpg');
+                    print("DEBUG: Value of newSquareJpg variable is $newSquareJpg\n");
                     if(defined($newSquareJpg) && -f $newSquareJpg) {
                         print("SUCCESS: Downloaded a new programme square jpg image file to the destination directory.\n");
+                        # Create backup copy if required
+                        if($claBackupJpgNfo == 1) {
+                            print("INFO: Creating a backup copy of the square jpg metadata file in the destination directory with the additional extension '.bbc'.\n");
+                            copy($newSquareJpg, $newSquareJpg . '.bbc');
+                        }
                     }
                     else {
                         print("WARNING: Unable to download a new programme square jpg image file to the destination directory.\n");
